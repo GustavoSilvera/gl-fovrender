@@ -59,7 +59,7 @@ inline auto readFile(const std::string_view path) -> const std::string
 const bool loadShaderProgram(const bool erase_if_program_registered = true)
 {
     const std::string basicVertexShaderSource = readFile("../shaders/vertex_shader.glsl");
-    const std::string basicFragmentShaderSource = readFile("../shaders/fragment_shader.glsl");
+    const std::string basicFragmentShaderSource = readFile("../shaders/wave_shader_frag.glsl");
 
     if (!shader_utils.registerShader(ShaderUtils::Type::VERTEX_SHADER_TYPE, basicVertexShaderSource.c_str()))
     {
@@ -151,6 +151,10 @@ int main(void)
     bool enable_vsync = true;
     glfwSwapInterval(int(enable_vsync));
 
+    // get mouse pos
+    double mouse_pos[] = {0.0, 0.0};
+    glfwGetCursorPos(window, &mouse_pos[0], &mouse_pos[1]);
+
     double lastTime = glfwGetTime();
     int nbFrames = 0;
     while (!glfwWindowShouldClose(window))
@@ -162,6 +166,14 @@ int main(void)
             glfwGetWindowSize(window, &screen_size[0], &screen_size[1]);
             float screen_size_f[] = {static_cast<float>(screen_size[0]), static_cast<float>(screen_size[1])};
             glUniform2fv(glGetUniformLocation(shaderProgram, "iResolution"), 1, screen_size_f);
+
+            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+            {
+                // only capture mouse pos when (left) pressed
+                glfwGetCursorPos(window, &mouse_pos[0], &mouse_pos[1]);
+            }
+            float mouse_pos_f[] = {static_cast<float>(mouse_pos[0]), static_cast<float>(mouse_pos[1])};
+            glUniform2fv(glGetUniformLocation(shaderProgram, "iMouse"), 1, mouse_pos_f);
         }
 
         // Render

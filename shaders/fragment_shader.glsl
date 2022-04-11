@@ -1,4 +1,5 @@
 #version 330 core
+// modified from https://www.shadertoy.com/view/WdsGRl
 
 layout(location = 0) out vec4 fragColor;
 uniform vec2 iResolution;
