@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
 
     // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    const float quadVerts[] = {
+    const float CanvasVerts[] = {
         // top right triangle
         -1.0f, 1.0f, 0.0f, // Top-left
         1.0f, 1.0f, 0.0f,  // Top-right
@@ -161,13 +161,11 @@ int main(int argc, char *argv[])
         -1.0f, 1.0f, 0.0f,  // Top-left
         1.0f, -1.0f, 0.0f,  // Bottom-right
     };
-    //{-1.f, -1.f, 0.f, 0.f, -1.f, 1.f, 0.f, 1.f, 1.f, -1.f, 1.f, 0.f,                              1.f,  -1.f, 1.f,
-    // 0.f, -1.f, 1.f, 0.f, 1.f, 1.f, 1.f,  1.f, 1.f};
 
     GLuint VBO;
     glGenBuffers(1, &VBO); // generate 1 vertex buffer object
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVerts), quadVerts, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(CanvasVerts), CanvasVerts, GL_STATIC_DRAW);
 
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
