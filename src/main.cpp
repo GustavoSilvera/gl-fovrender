@@ -10,6 +10,7 @@
 #endif
 
 #include "shader_utils.h"
+#include "utils.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -41,6 +42,13 @@ GLFWwindow *initializeWindow(const int *screen_size)
 
 inline auto readFile(const std::string_view path) -> const std::string
 {
+    std::cout << "Reading shader: \"" << path << "\"" << std::endl;
+    std::ifstream Input(path);
+    if (!Input.is_open())
+    {
+        std::cout << "Unable to read file \"" << path << "\"" << std::endl;
+        exit(1);
+    }
     // Avoid dynamic allocation: read the 4096 first bytes
     constexpr auto read_size = std::size_t(4096);
     auto stream = std::ifstream(path.data());
@@ -58,8 +66,8 @@ inline auto readFile(const std::string_view path) -> const std::string
 
 const bool loadShaderProgram(const bool erase_if_program_registered = true)
 {
-    const std::string basicVertexShaderSource = readFile("../shaders/vertex_shader.glsl");
-    const std::string basicFragmentShaderSource = readFile("../shaders/wave_shader_frag.glsl");
+    const std::string basicVertexShaderSource = readFile(GlobalParams.MainParams.vertex_shader_path);
+    const std::string basicFragmentShaderSource = readFile(GlobalParams.MainParams.fragment_shader_path);
 
     if (!shader_utils.registerShader(ShaderUtils::Type::VERTEX_SHADER_TYPE, basicVertexShaderSource.c_str()))
     {
@@ -97,9 +105,19 @@ void displayFps(double &lastTime, int &nbFrames, GLFWwindow *pWindow)
         lastTime = currentTime;
     }
 }
+// global params struct
+struct ParamsStruct GlobalParams;
 
-int main(void)
+int main(int argc, char *argv[])
 {
+    if (argc == 1)
+        ParseParams("../params/params.ini");
+    else
+    {
+        const std::string ParamFile(argv[1]);
+        ParseParams(ParamFile);
+    }
+
     // Initialize the lib
     if (!glfwInit())
     {
@@ -107,8 +125,8 @@ int main(void)
         return -1;
     }
 
-    const int W = 1920;
-    const int H = 1080;
+    const int W = GlobalParams.WindowParams.X0;
+    const int H = GlobalParams.WindowParams.Y0;
 
     int screen_size[] = {W, H};
     GLFWwindow *window = initializeWindow(screen_size);
@@ -148,7 +166,7 @@ int main(void)
     glEnableVertexAttribArray(0);
 
     // disable vsync
-    bool enable_vsync = true;
+    bool enable_vsync = GlobalParams.MainParams.bEnableVsync;
     glfwSwapInterval(int(enable_vsync));
 
     // get mouse pos
@@ -162,11 +180,18 @@ int main(void)
         const unsigned int shaderProgram = shader_utils.getProgram().value();
         // send data to the shader program
         {
+            // send iTime
             glUniform1f(glGetUniformLocation(shaderProgram, "iTime"), glfwGetTime());
+
+            // send iFrame
+            glUniform1i(glGetUniformLocation(shaderProgram, "iFrame"), nbFrames);
+
+            // send iResolution
             glfwGetWindowSize(window, &screen_size[0], &screen_size[1]);
             float screen_size_f[] = {static_cast<float>(screen_size[0]), static_cast<float>(screen_size[1])};
             glUniform2fv(glGetUniformLocation(shaderProgram, "iResolution"), 1, screen_size_f);
 
+            // send iMouse
             if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
             {
                 // only capture mouse pos when (left) pressed
