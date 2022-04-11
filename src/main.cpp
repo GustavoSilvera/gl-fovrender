@@ -17,7 +17,7 @@
 
 auto shader_utils = ShaderUtils::Program{};
 
-GLFWwindow *initializeWindow(const int *screen_size)
+GLFWwindow *initializeWindow(int *screen_size)
 {
     assert(screen_size != nullptr); // should be {W, H}
 
@@ -35,6 +35,7 @@ GLFWwindow *initializeWindow(const int *screen_size)
     // Makes the window context current
     glfwMakeContextCurrent(window);
     // Enable the viewport
+    glfwGetFramebufferSize(window, &screen_size[0], &screen_size[1]);
     glViewport(0, 0, screen_size[0], screen_size[1]);
 
     return window;
@@ -150,19 +151,32 @@ int main(int argc, char *argv[])
 
     // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    const float quadVerts[] = {-1.f, -1.f, 0.f, 0.f, -1.f, 1.f, 0.f, 1.f, 1.f, -1.f, 1.f, 0.f,
-                               1.f,  -1.f, 1.f, 0.f, -1.f, 1.f, 0.f, 1.f, 1.f, 1.f,  1.f, 1.f};
+    const float quadVerts[] = {
+        // top right triangle
+        -1.0f, 1.0f, 0.0f, // Top-left
+        1.0f, 1.0f, 0.0f,  // Top-right
+        1.0f, -1.0f, 0.0f, // Bottom-right
+        // bottom left triangle
+        -1.0f, -1.0f, 0.0f, // Bottom-left
+        -1.0f, 1.0f, 0.0f,  // Top-left
+        1.0f, -1.0f, 0.0f,  // Bottom-right
+    };
+    //{-1.f, -1.f, 0.f, 0.f, -1.f, 1.f, 0.f, 1.f, 1.f, -1.f, 1.f, 0.f,                              1.f,  -1.f, 1.f,
+    // 0.f, -1.f, 1.f, 0.f, 1.f, 1.f, 1.f,  1.f, 1.f};
+
+    GLuint VBO;
+    glGenBuffers(1, &VBO); // generate 1 vertex buffer object
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVerts), quadVerts, GL_STATIC_DRAW);
 
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-    GLuint VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVerts), quadVerts, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(0));
+    const int stride = 3;
+    const void *offset = (void *)(0);
+    const auto bNoramalize = GL_FALSE;
+    glVertexAttribPointer(0, stride, GL_FLOAT, bNoramalize, stride * sizeof(float), offset);
     glEnableVertexAttribArray(0);
 
     // disable vsync
@@ -187,7 +201,8 @@ int main(int argc, char *argv[])
             glUniform1i(glGetUniformLocation(shaderProgram, "iFrame"), nbFrames);
 
             // send iResolution
-            glfwGetWindowSize(window, &screen_size[0], &screen_size[1]);
+            glfwGetFramebufferSize(window, &screen_size[0], &screen_size[1]);
+            glViewport(0, 0, screen_size[0], screen_size[1]);
             float screen_size_f[] = {static_cast<float>(screen_size[0]), static_cast<float>(screen_size[1])};
             glUniform2fv(glGetUniformLocation(shaderProgram, "iResolution"), 1, screen_size_f);
 
@@ -206,7 +221,7 @@ int main(int argc, char *argv[])
         glClear(GL_COLOR_BUFFER_BIT);
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
         // Poll for and process events
         glfwPollEvents();
 
