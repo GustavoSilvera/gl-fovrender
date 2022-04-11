@@ -10,6 +10,10 @@ uniform int iFrame;
 const int stride = 16;
 const int quad = stride / 2;
 const vec4 clear = vec4(0, 0, 0, 1);
+float diag = 0.5 * (iResolution.x + iResolution.y);
+float thresh1 = 0.1 * diag;  // smallest foveal region
+float thresh2 = 0.25 * diag; // middle region
+float thresh3 = 0.4 * diag;  // far region
 
 /////////////////////////////////////////////////////
 //////////////////////BEGIN SHADER///////////////////
@@ -24,10 +28,20 @@ vec4 expensive_main()
 //////////////////////END SHADER/////////////////////
 /////////////////////////////////////////////////////
 
+float norm2(const vec2 a)
+{
+    return dot(a, a);
+}
+
+float sqr(const float a)
+{
+    return a * a;
+}
+
 void main()
 {
     vec2 coord = gl_FragCoord.xy;
-    float d = length(coord - 2 * vec2(iMouse.x, -iMouse.y + iResolution.y / 2));
+    float d2 = norm2(coord - 2 * vec2(iMouse.x, -iMouse.y + iResolution.y / 2));
 
     // which quad am on?
     float xmod = mod(coord.x - 0.5, stride);
@@ -37,16 +51,16 @@ void main()
     {
         fragColor = expensive_main();
     }
-    else if (xmod < quad && ymod >= quad)
+    else if (xmod < quad && ymod >= quad) // top right
     {
-        fragColor = (d > 200) ? clear : expensive_main();
+        fragColor = (d2 > sqr(thresh1)) ? clear : expensive_main();
     }
-    else if (xmod >= quad && ymod < quad)
+    else if (xmod >= quad && ymod < quad) // bottom left
     {
-        fragColor = (d > 400) ? clear : expensive_main();
+        fragColor = (d2 > sqr(thresh2)) ? clear : expensive_main();
     }
-    else
+    else // bottom right
     {
-        fragColor = (d > 800) ? clear : expensive_main();
+        fragColor = (d2 > sqr(thresh3)) ? clear : expensive_main();
     }
 }
