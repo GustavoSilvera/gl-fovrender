@@ -16,6 +16,8 @@
 #include <sstream>
 
 auto shader_utils = ShaderUtils::Program{};
+// global params struct
+struct ParamsStruct GlobalParams;
 
 GLFWwindow *initializeWindow(int *screen_size)
 {
@@ -67,6 +69,8 @@ inline auto readFile(const std::string_view path) -> const std::string
 
 const bool loadShaderProgram(const bool erase_if_program_registered = true)
 {
+    if (erase_if_program_registered)
+        GlobalParams.ParseFile();
     const std::string basicVertexShaderSource = readFile(GlobalParams.MainParams.vertex_shader_path);
     const std::string basicFragmentShaderSource = readFile(GlobalParams.MainParams.fragment_shader_path);
 
@@ -106,18 +110,14 @@ void displayFps(double &lastTime, int &nbFrames, GLFWwindow *pWindow)
         lastTime = currentTime;
     }
 }
-// global params struct
-struct ParamsStruct GlobalParams;
 
 int main(int argc, char *argv[])
 {
     if (argc == 1)
-        ParseParams("../params/params.ini");
+        GlobalParams.FilePath = "../params/params.ini";
     else
-    {
-        const std::string ParamFile(argv[1]);
-        ParseParams(ParamFile);
-    }
+        GlobalParams.FilePath = std::string(argv[1]);
+    GlobalParams.ParseFile();
 
     // Initialize the lib
     if (!glfwInit())
@@ -187,6 +187,7 @@ int main(int argc, char *argv[])
 
     double lastTime = glfwGetTime();
     int nbFrames = 0;
+    bool bReloadDown = false; // only reload on rising edge
     while (!glfwWindowShouldClose(window))
     {
         const unsigned int shaderProgram = shader_utils.getProgram().value();
@@ -230,10 +231,16 @@ int main(int argc, char *argv[])
         }
 
         // check for reloading shaders
-        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !bReloadDown)
         {
-            std::cout << "reloading..." << std::endl;
+            std::cout << "Reloading shaders..." << std::endl;
+            bReloadDown = true;
             loadShaderProgram(true);
+            std::cout << "Done!" << std::endl;
+        }
+        else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE)
+        {
+            bReloadDown = false;
         }
 
         // display fps in title
