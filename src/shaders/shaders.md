@@ -55,3 +55,11 @@ Replace all instances of `fragCoord` (a `vec2`) with `gl_FragCoord.xy` (original
 # 5) [If necessary] Refactor `#if`
 
 In a lot of cases I ran into issues with `#if` declarations in the `.glsl` files, so I simply commented them out if they casued problems. 
+
+# 6) Point to the new file in the params
+
+Finally, make sure the `fragment_shader` variable in `params/params.ini` (or whatever param file you are using) correctly points to the new `.glsl` file you added. 
+
+```ini
+fragment_shader=../src/shaders/new_shader_here.glsl
+```
