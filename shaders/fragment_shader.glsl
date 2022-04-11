@@ -1,8 +1,11 @@
 #version 330 core
 
 layout(location = 0) out vec4 fragColor;
-vec4 iResolution = vec4(800, 600, 0, 0);
-uniform float t;
+uniform vec2 iResolution;
+uniform float iTime;
+
+#define t iTime
+
 
 void main()
 {

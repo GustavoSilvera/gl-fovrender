@@ -16,13 +16,16 @@
 
 auto shader_utils = ShaderUtils::Program{};
 
-GLFWwindow *initializeWindow(const int H, const int W)
+GLFWwindow *initializeWindow(const int *screen_size)
 {
+    assert(screen_size != nullptr); // should be {W, H}
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow *window = glfwCreateWindow(H, W, "Test", nullptr, nullptr);
+    const auto T0 = "Loading shaders..."; // initial title
+    GLFWwindow *window = glfwCreateWindow(screen_size[0], screen_size[1], T0, nullptr, nullptr);
     if (!window)
     {
         std::cerr << "window creation failed" << std::endl;
@@ -31,7 +34,7 @@ GLFWwindow *initializeWindow(const int H, const int W)
     // Makes the window context current
     glfwMakeContextCurrent(window);
     // Enable the viewport
-    glViewport(0, 0, H, W);
+    glViewport(0, 0, screen_size[0], screen_size[1]);
 
     return window;
 }
@@ -107,7 +110,8 @@ int main(void)
     const int W = 1920;
     const int H = 1080;
 
-    GLFWwindow *window = initializeWindow(W, H);
+    int screen_size[] = {W, H};
+    GLFWwindow *window = initializeWindow(screen_size);
     if (!window)
     {
         glfwTerminate();
@@ -128,8 +132,8 @@ int main(void)
 
     // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    const float quadVerts[] = {-1.0, -1.0, 0.0, 0.0, -1.0, 1.0, 0.0, 1.0, 1.0, -1.0, 1.0, 0.0,
-                               1.0,  -1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 1.0, 1.0, 1.0,  1.0, 1.0};
+    const float quadVerts[] = {-1.f, -1.f, 0.f, 0.f, -1.f, 1.f, 0.f, 1.f, 1.f, -1.f, 1.f, 0.f,
+                               1.f,  -1.f, 1.f, 0.f, -1.f, 1.f, 0.f, 1.f, 1.f, 1.f,  1.f, 1.f};
 
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
@@ -143,14 +147,27 @@ int main(void)
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(0));
     glEnableVertexAttribArray(0);
 
+    // disable vsync
+    bool enable_vsync = true;
+    glfwSwapInterval(int(enable_vsync));
+
     double lastTime = glfwGetTime();
     int nbFrames = 0;
     while (!glfwWindowShouldClose(window))
     {
+        const unsigned int shaderProgram = shader_utils.getProgram().value();
+        // send data to the shader program
+        {
+            glUniform1f(glGetUniformLocation(shaderProgram, "iTime"), glfwGetTime());
+            glfwGetWindowSize(window, &screen_size[0], &screen_size[1]);
+            float screen_size_f[] = {static_cast<float>(screen_size[0]), static_cast<float>(screen_size[1])};
+            glUniform2fv(glGetUniformLocation(shaderProgram, "iResolution"), 1, screen_size_f);
+        }
+
         // Render
-        glClearColor(0.5, 0.5, 0.5, 1.0);
+        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        glUseProgram(shader_utils.getProgram().value());
+        glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         // Poll for and process events
@@ -168,9 +185,6 @@ int main(void)
             std::cout << "reloading..." << std::endl;
             loadShaderProgram(true);
         }
-
-        // send data to the shader program
-        glUniform1f(glGetUniformLocation(shader_utils.getProgram().value(), "t"), glfwGetTime());
 
         // display fps in title
         displayFps(lastTime, nbFrames, window);
