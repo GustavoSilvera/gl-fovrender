@@ -59,12 +59,13 @@ void displayFps(double &lastTime, int &nbFrames, GLFWwindow *pWindow)
     }
 }
 
-void TalkWithProgram(int program, GLFWwindow *window, int nbFrames, int *screen_size, double *mouse_pos)
+void TalkWithProgram(int program, GLFWwindow *window, int nbFrames, int *screen_size, double *mouse_pos,
+                     float currentTime)
 {
     // send data to the active shader program
 
     // send iTime
-    glUniform1f(glGetUniformLocation(program, "iTime"), glfwGetTime());
+    glUniform1f(glGetUniformLocation(program, "iTime"), currentTime);
 
     // send iFrame
     glUniform1i(glGetUniformLocation(program, "iFrame"), nbFrames);
@@ -218,6 +219,9 @@ int main(int argc, char *argv[])
     double lastTime = glfwGetTime();
     int nbFrames = 0;
     bool bReloadDown = false; // only reload on rising edge
+    bool bPauseDown = false;  // only pause on rising edge
+    bool bTickClock = true;   // tick clock initially
+    float currentTime = 0.f;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -233,7 +237,7 @@ int main(int argc, char *argv[])
 
         // Draw main shader
         glUseProgram(shaderProgram);
-        TalkWithProgram(shaderProgram, window, nbFrames, screen_size, mouse_pos);
+        TalkWithProgram(shaderProgram, window, nbFrames, screen_size, mouse_pos, currentTime);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
 
@@ -251,7 +255,7 @@ int main(int argc, char *argv[])
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glUseProgram(reconstructProgram);
-        TalkWithProgram(reconstructProgram, window, nbFrames, screen_size, mouse_pos);
+        TalkWithProgram(reconstructProgram, window, nbFrames, screen_size, mouse_pos, currentTime);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
 
@@ -278,6 +282,22 @@ int main(int argc, char *argv[])
         {
             bReloadDown = false;
         }
+
+        // check for toggling time shaders
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !bPauseDown)
+        {
+            std::cout << "Pausing shaders..." << std::endl;
+            bTickClock = !bTickClock;
+            bPauseDown = true;
+        }
+        else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
+        {
+            bPauseDown = false;
+        }
+
+        /// TODO: make this continue from where it left off
+        if (bTickClock)
+            currentTime = glfwGetTime();
 
         /// TODO: use arrow keys to switch between shaders!!
 
