@@ -2,7 +2,6 @@
 #define UTILS
 
 #include <cassert>
-#include <cmath> // pow
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -38,10 +37,14 @@ inline auto readFile(const std::string_view path) -> const std::string
     return out;
 }
 
-struct MainParamsStruct
+struct MainShaderParams
 {
-    std::string vertex_shader_path, fragment_shader_path, reconstruction_shader_path;
-    bool bEnableVsync;
+    std::string vertex_shader_path, fragment_shader_dir, fragment_shader_name;
+};
+
+struct FRShaderParams
+{
+    std::string drop_shader, reconstruction_shader;
 };
 
 struct WindowParamsStruct
@@ -51,19 +54,21 @@ struct WindowParamsStruct
 
 struct ParamsStruct
 {
-    MainParamsStruct MainParams;
+    bool bEnableVsync;
+    MainShaderParams MainParams;
+    FRShaderParams FRParams;
     WindowParamsStruct WindowParams;
-    std::string FilePath = "/INSERT/PATH/HERE";
+    std::string FilePath;
     void ParseFile()
     {
         // create input stream to get file data
         std::ifstream Input(FilePath);
         if (!Input.is_open())
         {
-            std::cout << "ERROR: could not open" << FilePath << std::endl;
+            std::cout << "ERROR: could not open \"" << FilePath << "\"" << std::endl;
             exit(1);
         }
-        std::cout << "Reading params from " << FilePath << std::endl;
+        std::cout << "Reading params from \"" << FilePath << "\"" << std::endl;
 
         // read from file into params
         std::string Tmp;
@@ -73,18 +78,22 @@ struct ParamsStruct
             Input >> Tmp;
             if (Input.bad() || Input.fail())
                 break;
-            if (Tmp.at(0) == '[' || Tmp.at(0) == '#') // ignoring labels & comments
+            if (Tmp.at(0) == '[' || Tmp.at(0) == '#' || Tmp.at(0) == ';') // ignoring labels & comments
                 continue;
             std::string ParamName = Tmp.substr(0, Tmp.find(Delim));
             std::string ParamValue = Tmp.substr(Tmp.find(Delim) + 1, Tmp.size());
             if (!ParamName.compare("enable_vsync"))
-                MainParams.bEnableVsync = stob(ParamValue);
+                bEnableVsync = stob(ParamValue);
             else if (!ParamName.compare("vertex_shader"))
                 MainParams.vertex_shader_path = ParamValue;
-            else if (!ParamName.compare("fragment_shader"))
-                MainParams.fragment_shader_path = ParamValue;
+            else if (!ParamName.compare("fragment_shaders"))
+                MainParams.fragment_shader_dir = ParamValue;
+            else if (!ParamName.compare("start_frag_shader"))
+                MainParams.fragment_shader_name = ParamValue;
+            else if (!ParamName.compare("fr_fragment_shader"))
+                FRParams.drop_shader = ParamValue;
             else if (!ParamName.compare("fr_reconstruction_shader"))
-                MainParams.reconstruction_shader_path = ParamValue;
+                FRParams.reconstruction_shader = ParamValue;
             else if (!ParamName.compare("init_width"))
                 WindowParams.X0 = std::stoi(ParamValue);
             else if (!ParamName.compare("init_height"))

@@ -86,7 +86,7 @@ void TalkWithProgram(int program, GLFWwindow *window, int nbFrames, int *screen_
     glUniform2fv(glGetUniformLocation(program, "iMouse"), 1, mouse_pos_f);
 
     // communicate foveated render params
-    glUniform1i(glGetUniformLocation(program, "stride"), 16);
+    glUniform1i(glGetUniformLocation(program, "stride"), 32);
     const float diag = 0.5f * (screen_size[0] + screen_size[1]);
     const float thresh1 = 0.1f * diag;
     const float thresh2 = 0.25f * diag;
@@ -127,15 +127,12 @@ int main(int argc, char *argv[])
     std::cout << "Renderer: " << renderer << std::endl;
     std::cout << "OpenGL version supported: " << version << std::endl;
 
-    auto main_program = ShaderUtils::Program{};
-    bool status = main_program.loadShaders({
-        ShaderUtils::Shader(GlobalParams.MainParams.vertex_shader_path, "vertex", GL_VERTEX_SHADER),
-        ShaderUtils::Shader(GlobalParams.MainParams.fragment_shader_path, "fragment", GL_FRAGMENT_SHADER),
-    });
+    auto main_program = ShaderUtils::MainProgram{};
+    bool status = main_program.loadShaders(GlobalParams);
 
     if (!status)
     {
-        std::cerr << "can't load the shaders to initiate the program" << std::endl;
+        std::cerr << "can't load the shaders to initiate the main program" << std::endl;
         glfwTerminate();
         return -1;
     }
@@ -143,12 +140,12 @@ int main(int argc, char *argv[])
     auto reconstruct_program = ShaderUtils::Program{};
     status = reconstruct_program.loadShaders({
         ShaderUtils::Shader(GlobalParams.MainParams.vertex_shader_path, "vertex", GL_VERTEX_SHADER),
-        ShaderUtils::Shader(GlobalParams.MainParams.reconstruction_shader_path, "reconstruct", GL_FRAGMENT_SHADER),
+        ShaderUtils::Shader(GlobalParams.FRParams.reconstruction_shader, "reconstruct", GL_FRAGMENT_SHADER),
     });
 
     if (!status)
     {
-        std::cerr << "can't load the shaders to initiate the program" << std::endl;
+        std::cerr << "can't load the shaders to initiate the FR program" << std::endl;
         glfwTerminate();
         return -1;
     }
@@ -209,7 +206,7 @@ int main(int argc, char *argv[])
     glEnableVertexAttribArray(0);
 
     // disable vsync
-    bool enable_vsync = GlobalParams.MainParams.bEnableVsync;
+    bool enable_vsync = GlobalParams.bEnableVsync;
     glfwSwapInterval(int(enable_vsync));
 
     // get mouse pos
@@ -241,13 +238,13 @@ int main(int argc, char *argv[])
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
 
-        // Draw reconstruction shader
-
+        // copy framebuffer (current rendered buffer) to FBO (& its texture)
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBO);
         glBlitFramebuffer(0, 0, screen_size[0], screen_size[1], 0, 0, screen_size[0], screen_size[1],
                           GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        // Draw reconstruction shader
 
         // render FBO as fullscreen quad on default FBO
         // glBindFramebuffer(GL_FRAMEBUFFER, 0);      // unbind your FBO to set the default FBO

@@ -44,12 +44,12 @@ void main()
 
     if (xmod < quad && ymod < quad) // top left
     {
-        // no op
+        // no op (always rendered in full in frag shader)
         discard;
     }
     else if (xmod < quad && ymod >= quad) // top right
     {
-        weight_x = xmod / quad;          // positive is left
+        weight_x = xmod / quad;          // positive is right
         weight_y = (ymod - quad) / quad; // positive is up
         if (d2 > sqr(thresh1))
         {
@@ -65,7 +65,7 @@ void main()
     }
     else if (xmod >= quad && ymod < quad) // bottom left
     {
-        weight_x = (xmod - quad) / quad; // positive is left
+        weight_x = (xmod - quad) / quad; // positive is right
         weight_y = ymod / quad;          // positive is up
         if (d2 > sqr(thresh2))
         {

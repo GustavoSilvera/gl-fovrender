@@ -20,7 +20,7 @@ Here are some great shaders that I have successfully managed to port to this cod
 | Happy Jumping | [iq](https://www.shadertoy.com/user/iq) | https://www.shadertoy.com/view/3lsSzf |
 | Raymarching - Primitives  | [iq](https://www.shadertoy.com/user/iq) | https://www.shadertoy.com/view/Xds3zN |
 
-You can simply paste the content into a new `.glsl` file in this `shaders` directory.
+You can simply paste the content into a new `.glsl` file in this `shaders/main/` directory.
 
 # 2) Add to the beginning of the file
 
@@ -43,7 +43,10 @@ This respects the primary input/output mechanisms that ShaderToy uses in their A
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
 # with this
-void main()
+vec4 expensive_main()
+
+# and add at the bottom of the function:
+return fragColor;
 ```
 
 (Note, the `fragColor` variable was newly declared at the top of the file as described in #2)
@@ -61,5 +64,5 @@ In a lot of cases I ran into issues with `#if` declarations in the `.glsl` files
 Finally, make sure the `fragment_shader` variable in `params/params.ini` (or whatever param file you are using) correctly points to the new `.glsl` file you added. 
 
 ```ini
-fragment_shader=../src/shaders/new_shader_here.glsl
+fragment_shaders=../src/shaders/new_shader_here.glsl
 ```

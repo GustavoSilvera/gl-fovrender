@@ -8,6 +8,7 @@
 
 #include "shader_utils.h"
 #include "utils.h"
+#include <filesystem>
 #include <iostream>
 #include <optional>
 
@@ -33,6 +34,7 @@ bool Program::Reload()
 
 bool Program::loadShaders(const std::vector<Shader> &ShaderStructList)
 {
+    std::cout << "Starting program creation" << std::endl;
     Shaders = ShaderStructList;
     for (auto &ShaderStruct : Shaders)
     {
@@ -112,5 +114,45 @@ void Program::DeleteShaders()
     {
         glDeleteShader(Shader.ShaderID);
     }
+}
+
+bool MainProgram::loadShaders(const ParamsStruct &P)
+{
+    Params = P;
+    Shaders.clear();
+    Shaders = {
+        ShaderUtils::Shader(P.MainParams.vertex_shader_path, "vertex", GL_VERTEX_SHADER),
+        ShaderUtils::Shader(P.MainParams.fragment_shader_dir + P.MainParams.fragment_shader_name, "main",
+                            GL_FRAGMENT_SHADER),
+        ShaderUtils::Shader(P.FRParams.drop_shader, "fragment", GL_FRAGMENT_SHADER),
+    };
+    // read all the shaders in the FragmentShaderPath
+    for (const auto &file : std::filesystem::directory_iterator(P.MainParams.fragment_shader_dir))
+    {
+        std::string path = file.path();
+        std::cout << "Found shader: \"" << path << "\"" << std::endl;
+        OtherShaderPaths.push_back(path);
+    }
+    std::cout << std::endl;
+
+    // call parent load
+    return Program::loadShaders(Shaders);
+}
+
+bool MainProgram::Reload()
+{
+    Params.ParseFile();
+    if (OtherShaderPaths.size() > 0)
+    {
+        Shaders.clear();
+        Shaders = {
+            ShaderUtils::Shader(Params.MainParams.vertex_shader_path, "vertex", GL_VERTEX_SHADER),
+            ShaderUtils::Shader(OtherShaderPaths[ShaderIdx], "main", GL_FRAGMENT_SHADER),
+            ShaderUtils::Shader(Params.FRParams.drop_shader, "fragment", GL_FRAGMENT_SHADER),
+        };
+        ShaderIdx = (ShaderIdx + 1) % OtherShaderPaths.size();
+    }
+    // call parent reload
+    return Program::Reload();
 }
 }; // namespace ShaderUtils

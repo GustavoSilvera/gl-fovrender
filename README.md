@@ -1,4 +1,5 @@
 # 15-469 OpenGL Renderer Playground (Final Project)
+## (Fixed) Foveated Rendering Demo
 
 ### TODO
 

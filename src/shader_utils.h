@@ -3,6 +3,7 @@
 #ifndef _SHADER_UTILS_H
 #define _SHADER_UTILS_H
 
+#include "utils.h"
 #include <string>
 #include <vector>
 
@@ -23,7 +24,7 @@ struct Shader
 struct Program
 {
 
-  private:
+  protected:
     int program = 0;
 
     bool registerShader(Shader &S);
@@ -39,6 +40,18 @@ struct Program
     bool loadShaders(const std::vector<Shader> &shaders);
     bool Reload();
     int GetProgram() const;
+};
+
+struct MainProgram : Program
+{
+  private:
+    std::vector<std::string> OtherShaderPaths;
+    ParamsStruct Params;
+    size_t ShaderIdx = 0;
+
+  public:
+    bool loadShaders(const ParamsStruct &P);
+    bool Reload();
 };
 
 } // namespace ShaderUtils
