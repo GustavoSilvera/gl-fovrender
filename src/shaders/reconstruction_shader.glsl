@@ -9,14 +9,15 @@ uniform int iFrame;
 in vec2 texCoord;
 uniform sampler2D tex;
 
+// foveated render vars
+uniform int stride;
+uniform float thresh1; // smallest foveal region
+uniform float thresh2; // middle region
+uniform float thresh3; // far region
+
 // constant vars
-const int stride = 32;
-const int quad = stride / 2;
+int quad = stride / 2; // how wide the group of dropped pixels is
 const vec4 clear = vec4(0, 0, 0, 1);
-float diag = 0.5 * (iResolution.x + iResolution.y);
-float thresh1 = 0.1 * diag;  // smallest foveal region
-float thresh2 = 0.25 * diag; // middle region
-float thresh3 = 0.4 * diag;  // far region
 
 float norm2(const vec2 a)
 {
@@ -30,7 +31,7 @@ float sqr(const float a)
 
 void main()
 {
-    vec2 coord = gl_FragCoord.xy - 0.5;
+    vec2 coord = gl_FragCoord.xy - 0.5; // top left corner of pixel
     float d2 = norm2(coord - 2 * vec2(iMouse.x, -iMouse.y + iResolution.y / 2));
 
     // which quad am on?

@@ -83,6 +83,16 @@ void TalkWithProgram(int program, GLFWwindow *window, int nbFrames, int *screen_
     }
     float mouse_pos_f[] = {static_cast<float>(mouse_pos[0]), static_cast<float>(mouse_pos[1])};
     glUniform2fv(glGetUniformLocation(program, "iMouse"), 1, mouse_pos_f);
+
+    // communicate foveated render params
+    glUniform1i(glGetUniformLocation(program, "stride"), 16);
+    const float diag = 0.5f * (screen_size[0] + screen_size[1]);
+    const float thresh1 = 0.1f * diag;
+    const float thresh2 = 0.25f * diag;
+    const float thresh3 = 0.4f * diag;
+    glUniform1f(glGetUniformLocation(program, "thresh1"), thresh1);
+    glUniform1f(glGetUniformLocation(program, "thresh2"), thresh2);
+    glUniform1f(glGetUniformLocation(program, "thresh3"), thresh3);
 }
 
 int main(int argc, char *argv[])

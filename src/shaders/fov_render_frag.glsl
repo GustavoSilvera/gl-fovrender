@@ -6,14 +6,15 @@ uniform float iTime;
 uniform vec2 iMouse;
 uniform int iFrame;
 
+// foveated render vars
+uniform int stride;
+uniform float thresh1; // smallest foveal region
+uniform float thresh2; // middle region
+uniform float thresh3; // far region
+
 // constant vars
-const int stride = 16;
-const int quad = stride / 2;
+int quad = stride / 2; // how wide the group of dropped pixels is
 const vec4 clear = vec4(0, 0, 0, 1);
-float diag = 0.5 * (iResolution.x + iResolution.y);
-float thresh1 = 0.1 * diag;  // smallest foveal region
-float thresh2 = 0.25 * diag; // middle region
-float thresh3 = 0.4 * diag;  // far region
 
 /////////////////////////////////////////////////////
 //////////////////////BEGIN SHADER///////////////////
@@ -40,12 +41,12 @@ float sqr(const float a)
 
 void main()
 {
-    vec2 coord = gl_FragCoord.xy;
+    vec2 coord = gl_FragCoord.xy - 0.5; // top left corner of pixel
     float d2 = norm2(coord - 2 * vec2(iMouse.x, -iMouse.y + iResolution.y / 2));
 
     // which quad am on?
-    float xmod = mod(coord.x - 0.5, stride);
-    float ymod = mod(coord.y - 0.5, stride);
+    float xmod = mod(coord.x, stride);
+    float ymod = mod(coord.y, stride);
 
     if (xmod < quad && ymod < quad) // top left
     {
