@@ -15,7 +15,6 @@
 #include <iostream>
 #include <sstream>
 
-auto shader_utils = ShaderUtils::Program{};
 // global params struct
 struct ParamsStruct GlobalParams;
 
@@ -43,57 +42,6 @@ GLFWwindow *initializeWindow(int *screen_size)
     return window;
 }
 
-inline auto readFile(const std::string_view path) -> const std::string
-{
-    std::cout << "Reading shader: \"" << path << "\"" << std::endl;
-    std::ifstream Input(path);
-    if (!Input.is_open())
-    {
-        std::cout << "Unable to read file \"" << path << "\"" << std::endl;
-        exit(1);
-    }
-    // Avoid dynamic allocation: read the 4096 first bytes
-    constexpr auto read_size = std::size_t(4096);
-    auto stream = std::ifstream(path.data());
-    stream.exceptions(std::ios_base::badbit);
-
-    auto out = std::string();
-    auto buf = std::string(read_size, '\0');
-    while (stream.read(&buf[0], read_size))
-    {
-        out.append(buf, 0, stream.gcount());
-    }
-    out.append(buf, 0, stream.gcount());
-    return out;
-}
-
-const bool loadShaderProgram(const bool erase_if_program_registered = true)
-{
-    if (erase_if_program_registered)
-        GlobalParams.ParseFile();
-    const std::string basicVertexShaderSource = readFile(GlobalParams.MainParams.vertex_shader_path);
-    const std::string basicFragmentShaderSource = readFile(GlobalParams.MainParams.fragment_shader_path);
-
-    if (!shader_utils.registerShader(ShaderUtils::Type::VERTEX_SHADER_TYPE, basicVertexShaderSource.c_str()))
-    {
-        std::cerr << "failed to register the vertex shader..." << std::endl;
-        return false;
-    }
-
-    if (!shader_utils.registerShader(ShaderUtils::Type::FRAGMENT_SHADER_TYPE, basicFragmentShaderSource.c_str()))
-    {
-        std::cerr << "failed to register the fragment shader..." << std::endl;
-        return false;
-    }
-
-    if (!shader_utils.registerProgram(erase_if_program_registered))
-    {
-        std::cerr << "failed to register the program..." << std::endl;
-        return false;
-    }
-    return true;
-}
-
 void displayFps(double &lastTime, int &nbFrames, GLFWwindow *pWindow)
 {
     double currentTime = glfwGetTime();
@@ -109,6 +57,32 @@ void displayFps(double &lastTime, int &nbFrames, GLFWwindow *pWindow)
         nbFrames = 0;
         lastTime = currentTime;
     }
+}
+
+void TalkWithProgram(int program, GLFWwindow *window, int nbFrames, int *screen_size, double *mouse_pos)
+{
+    // send data to the active shader program
+
+    // send iTime
+    glUniform1f(glGetUniformLocation(program, "iTime"), glfwGetTime());
+
+    // send iFrame
+    glUniform1i(glGetUniformLocation(program, "iFrame"), nbFrames);
+
+    // send iResolution
+    glfwGetFramebufferSize(window, &screen_size[0], &screen_size[1]);
+    glViewport(0, 0, screen_size[0], screen_size[1]);
+    float screen_size_f[] = {static_cast<float>(screen_size[0]), static_cast<float>(screen_size[1])};
+    glUniform2fv(glGetUniformLocation(program, "iResolution"), 1, screen_size_f);
+
+    // send iMouse
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+    {
+        // only capture mouse pos when (left) pressed
+        glfwGetCursorPos(window, &mouse_pos[0], &mouse_pos[1]);
+    }
+    float mouse_pos_f[] = {static_cast<float>(mouse_pos[0]), static_cast<float>(mouse_pos[1])};
+    glUniform2fv(glGetUniformLocation(program, "iMouse"), 1, mouse_pos_f);
 }
 
 int main(int argc, char *argv[])
@@ -142,7 +116,26 @@ int main(int argc, char *argv[])
     std::cout << "Renderer: " << renderer << std::endl;
     std::cout << "OpenGL version supported: " << version << std::endl;
 
-    if (!loadShaderProgram(false))
+    auto main_program = ShaderUtils::Program{};
+    bool status = main_program.loadShaders({
+        ShaderUtils::Shader(GlobalParams.MainParams.vertex_shader_path, "vertex", GL_VERTEX_SHADER),
+        ShaderUtils::Shader(GlobalParams.MainParams.fragment_shader_path, "fragment", GL_FRAGMENT_SHADER),
+    });
+
+    if (!status)
+    {
+        std::cerr << "can't load the shaders to initiate the program" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+
+    auto reconstruct_program = ShaderUtils::Program{};
+    status = reconstruct_program.loadShaders({
+        ShaderUtils::Shader(GlobalParams.MainParams.vertex_shader_path, "vertex", GL_VERTEX_SHADER),
+        ShaderUtils::Shader(GlobalParams.MainParams.reconstruction_shader_path, "reconstruct", GL_FRAGMENT_SHADER),
+    });
+
+    if (!status)
     {
         std::cerr << "can't load the shaders to initiate the program" << std::endl;
         glfwTerminate();
@@ -188,39 +181,28 @@ int main(int argc, char *argv[])
     double lastTime = glfwGetTime();
     int nbFrames = 0;
     bool bReloadDown = false; // only reload on rising edge
+
     while (!glfwWindowShouldClose(window))
     {
-        const unsigned int shaderProgram = shader_utils.getProgram().value();
-        // send data to the shader program
-        {
-            // send iTime
-            glUniform1f(glGetUniformLocation(shaderProgram, "iTime"), glfwGetTime());
+        int shaderProgram = main_program.GetProgram();
+        int reconstructProgram = reconstruct_program.GetProgram();
 
-            // send iFrame
-            glUniform1i(glGetUniformLocation(shaderProgram, "iFrame"), nbFrames);
-
-            // send iResolution
-            glfwGetFramebufferSize(window, &screen_size[0], &screen_size[1]);
-            glViewport(0, 0, screen_size[0], screen_size[1]);
-            float screen_size_f[] = {static_cast<float>(screen_size[0]), static_cast<float>(screen_size[1])};
-            glUniform2fv(glGetUniformLocation(shaderProgram, "iResolution"), 1, screen_size_f);
-
-            // send iMouse
-            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-            {
-                // only capture mouse pos when (left) pressed
-                glfwGetCursorPos(window, &mouse_pos[0], &mouse_pos[1]);
-            }
-            float mouse_pos_f[] = {static_cast<float>(mouse_pos[0]), static_cast<float>(mouse_pos[1])};
-            glUniform2fv(glGetUniformLocation(shaderProgram, "iMouse"), 1, mouse_pos_f);
-        }
-
-        // Render
-        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+        // Clear canvas
+        glClearColor(0.f, 0.f, 0.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        // Draw main shader
         glUseProgram(shaderProgram);
+        TalkWithProgram(shaderProgram, window, nbFrames, screen_size, mouse_pos);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
+
+        // Draw reconstruction shader
+        glUseProgram(reconstructProgram);
+        TalkWithProgram(reconstructProgram, window, nbFrames, screen_size, mouse_pos);
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
+
         // Poll for and process events
         glfwPollEvents();
 
@@ -235,7 +217,8 @@ int main(int argc, char *argv[])
         {
             std::cout << "Reloading shaders..." << std::endl;
             bReloadDown = true;
-            loadShaderProgram(true);
+            /// TODO: actually reload the shaders
+
             std::cout << "Done!" << std::endl;
         }
         else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE)

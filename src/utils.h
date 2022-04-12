@@ -14,9 +14,33 @@ inline bool stob(const std::string &s)
     return (s.at(0) == 't' || s.at(0) == 'T');
 }
 
+inline auto readFile(const std::string_view path) -> const std::string
+{
+    std::cout << "Reading shader: \"" << path << "\"" << std::endl;
+    std::ifstream Input(path);
+    if (!Input.is_open())
+    {
+        std::cout << "Unable to read file \"" << path << "\"" << std::endl;
+        exit(1);
+    }
+    // Avoid dynamic allocation: read the 4096 first bytes
+    constexpr auto read_size = std::size_t(4096);
+    auto stream = std::ifstream(path.data());
+    stream.exceptions(std::ios_base::badbit);
+
+    auto out = std::string();
+    auto buf = std::string(read_size, '\0');
+    while (stream.read(&buf[0], read_size))
+    {
+        out.append(buf, 0, stream.gcount());
+    }
+    out.append(buf, 0, stream.gcount());
+    return out;
+}
+
 struct MainParamsStruct
 {
-    std::string vertex_shader_path, fragment_shader_path;
+    std::string vertex_shader_path, fragment_shader_path, reconstruction_shader_path;
     bool bEnableVsync;
 };
 
@@ -59,6 +83,8 @@ struct ParamsStruct
                 MainParams.vertex_shader_path = ParamValue;
             else if (!ParamName.compare("fragment_shader"))
                 MainParams.fragment_shader_path = ParamValue;
+            else if (!ParamName.compare("fr_reconstruction_shader"))
+                MainParams.reconstruction_shader_path = ParamValue;
             else if (!ParamName.compare("init_width"))
                 WindowParams.X0 = std::stoi(ParamValue);
             else if (!ParamName.compare("init_height"))
