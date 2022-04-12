@@ -37,7 +37,7 @@ struct Program
     ~Program();
 
     bool loadShaders(const std::vector<Shader> &shaders);
-
+    bool Reload();
     int GetProgram() const;
 };
 

@@ -11,16 +11,27 @@
 #include <iostream>
 #include <optional>
 
-ShaderUtils::Program::Program()
+namespace ShaderUtils
+{
+Program::Program()
 {
 }
 
-ShaderUtils::Program::~Program()
+Program::~Program()
 {
     glDeleteProgram(program);
 }
 
-bool ShaderUtils::Program::loadShaders(const std::vector<Shader> &ShaderStructList)
+bool Program::Reload()
+{
+    // delete the current program
+    glDeleteProgram(GetProgram());
+
+    // load Shaders new
+    return loadShaders(Shaders);
+}
+
+bool Program::loadShaders(const std::vector<Shader> &ShaderStructList)
 {
     Shaders = ShaderStructList;
     for (auto &ShaderStruct : Shaders)
@@ -39,7 +50,7 @@ bool ShaderUtils::Program::loadShaders(const std::vector<Shader> &ShaderStructLi
     return true;
 }
 
-bool ShaderUtils::Program::registerShader(Shader &S)
+bool Program::registerShader(Shader &S)
 {
     // first read the file
     const std::string shader_src_str = readFile(S.file_path);
@@ -64,18 +75,8 @@ bool ShaderUtils::Program::registerShader(Shader &S)
     return true;
 }
 
-bool ShaderUtils::Program::registerProgram()
+bool Program::registerProgram()
 {
-    // if (registered && erase_if_registered)
-    // {
-    //     glDeleteProgram(GetProgram());
-    //     registered = false;
-    // }
-    // if ()
-    // {
-    //     std::cerr << "cannot compile program without vertex and fragment shaders" << std::endl;
-    //     return false;
-    // }
     int success = {};
     char errorMessage[1024] = {};
 
@@ -95,22 +96,21 @@ bool ShaderUtils::Program::registerProgram()
         return false;
     }
 
-    // We can now delete our vertex and fragment shaders
+    // We can now delete our other shaders
     DeleteShaders();
-    // glUseProgram(program);
-
     return true;
 }
 
-int ShaderUtils::Program::GetProgram() const
+int Program::GetProgram() const
 {
     return program;
 }
 
-void ShaderUtils::Program::DeleteShaders()
+void Program::DeleteShaders()
 {
     for (auto &Shader : Shaders)
     {
         glDeleteShader(Shader.ShaderID);
     }
 }
+}; // namespace ShaderUtils

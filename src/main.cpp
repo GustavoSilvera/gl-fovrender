@@ -217,8 +217,9 @@ int main(int argc, char *argv[])
         {
             std::cout << "Reloading shaders..." << std::endl;
             bReloadDown = true;
-            /// TODO: actually reload the shaders
-
+            /// TODO: reload shaders with new params
+            main_program.Reload();
+            reconstruct_program.Reload();
             std::cout << "Done!" << std::endl;
         }
         else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE)
