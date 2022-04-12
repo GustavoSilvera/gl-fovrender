@@ -214,8 +214,8 @@ int main(int argc, char *argv[])
         int shaderProgram = main_program.GetProgram();
         int reconstructProgram = reconstruct_program.GetProgram();
 
-        // first, render to custom FBO
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        // first, render to default
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // Clear canvas
         glClearColor(0.f, 0.f, 0.f, 1.0f);
@@ -229,10 +229,17 @@ int main(int argc, char *argv[])
 
         // Draw reconstruction shader
 
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBO);
+        glBlitFramebuffer(0, 0, screen_size[0], screen_size[1], 0, 0, screen_size[0], screen_size[1],
+                          GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
         // render FBO as fullscreen quad on default FBO
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);      // unbind your FBO to set the default FBO
+        // glBindFramebuffer(GL_FRAMEBUFFER, 0);      // unbind your FBO to set the default FBO
         glBindTexture(GL_TEXTURE_2D, texture_map); // bind texture to current active texture
 
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glUseProgram(reconstructProgram);
         TalkWithProgram(reconstructProgram, window, nbFrames, screen_size, mouse_pos);
         glBindVertexArray(VAO);
