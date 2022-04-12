@@ -38,8 +38,9 @@ void main()
     float xmod = mod(coord.x, stride);
     float ymod = mod(coord.y, stride);
 
-    int x2 = int(xmod / 2);
-    int y2 = int(ymod / 2);
+    // assume equal if nothing else
+    float weight_x = 0.5;
+    float weight_y = 0.5;
 
     if (xmod < quad && ymod < quad) // top left
     {
@@ -48,28 +49,32 @@ void main()
     }
     else if (xmod < quad && ymod >= quad) // top right
     {
+        weight_x = xmod / quad;          // positive is left
+        weight_y = (ymod - quad) / quad; // positive is up
         if (d2 > sqr(thresh1))
         {
             fragColor = vec4(0.0);
-            fragColor += texelFetch(tex, ivec2(coord.x - (x2 - quad), coord.y), 0);
-            fragColor += texelFetch(tex, ivec2(coord.x + (quad - x2), coord.y), 0);
-            fragColor += texelFetch(tex, ivec2(coord.x, coord.y - quad), 0);
-            fragColor += texelFetch(tex, ivec2(coord.x, coord.y + quad), 0);
-            fragColor /= 4;
+            fragColor += weight_x * texelFetch(tex, ivec2(coord.x + quad - xmod, coord.y), 0);             // right
+            fragColor += (1.0 - weight_x) * texelFetch(tex, ivec2(coord.x - xmod - 1, coord.y), 0);        // left
+            fragColor += weight_y * texelFetch(tex, ivec2(coord.x, coord.y + stride - ymod), 0);           // top
+            fragColor += (1.0 - weight_y) * texelFetch(tex, ivec2(coord.x, coord.y - ymod + quad - 1), 0); // bottom
+            fragColor /= 2;
         }
         else
             discard;
     }
     else if (xmod >= quad && ymod < quad) // bottom left
     {
+        weight_x = (xmod - quad) / quad; // positive is left
+        weight_y = ymod / quad;          // positive is up
         if (d2 > sqr(thresh2))
         {
             fragColor = vec4(0.0);
-            fragColor += texelFetch(tex, ivec2(coord.x - quad, coord.y), 0);
-            fragColor += texelFetch(tex, ivec2(coord.x + quad, coord.y), 0);
-            fragColor += texelFetch(tex, ivec2(coord.x, coord.y - quad), 0);
-            fragColor += texelFetch(tex, ivec2(coord.x, coord.y + quad), 0);
-            fragColor /= 4;
+            fragColor += weight_x * texelFetch(tex, ivec2(coord.x + stride - xmod, coord.y), 0);           // right
+            fragColor += (1.0 - weight_x) * texelFetch(tex, ivec2(coord.x - xmod + quad - 1, coord.y), 0); // left
+            fragColor += weight_y * texelFetch(tex, ivec2(coord.x, coord.y + quad - ymod), 0);             // top
+            fragColor += (1.0 - weight_y) * texelFetch(tex, ivec2(coord.x, coord.y - ymod - 1), 0);        // bottom
+            fragColor /= 2;
         }
         else
             discard;
@@ -79,9 +84,9 @@ void main()
         if (d2 > sqr(thresh3))
         {
             fragColor = vec4(0.0);
-            fragColor += texelFetch(tex, ivec2(coord.x - (x2 - quad), coord.y), 0);
-            fragColor += texelFetch(tex, ivec2(coord.x + (quad - x2), coord.y), 0);
-            fragColor /= 2;
+            // fragColor += texelFetch(tex, ivec2(coord.x - (x2 - quad), coord.y), 0);
+            // fragColor += texelFetch(tex, ivec2(coord.x + (quad - x2), coord.y), 0);
+            // fragColor /= 2;
         }
         else
             discard;
