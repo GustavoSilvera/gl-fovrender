@@ -10,7 +10,7 @@ in vec2 texCoord;
 uniform sampler2D tex;
 
 // constant vars
-const int stride = 16;
+const int stride = 32;
 const int quad = stride / 2;
 const vec4 clear = vec4(0, 0, 0, 1);
 float diag = 0.5 * (iResolution.x + iResolution.y);
@@ -30,12 +30,15 @@ float sqr(const float a)
 
 void main()
 {
-    vec2 coord = gl_FragCoord.xy;
+    vec2 coord = gl_FragCoord.xy - 0.5;
     float d2 = norm2(coord - 2 * vec2(iMouse.x, -iMouse.y + iResolution.y / 2));
 
     // which quad am on?
-    float xmod = mod(coord.x - 0.5, stride);
-    float ymod = mod(coord.y - 0.5, stride);
+    float xmod = mod(coord.x, stride);
+    float ymod = mod(coord.y, stride);
+
+    int x2 = int(xmod / 2);
+    int y2 = int(ymod / 2);
 
     if (xmod < quad && ymod < quad) // top left
     {
@@ -45,21 +48,40 @@ void main()
     else if (xmod < quad && ymod >= quad) // top right
     {
         if (d2 > sqr(thresh1))
-            fragColor = texelFetch(tex, ivec2(500, 500), 0);
+        {
+            fragColor = vec4(0.0);
+            fragColor += texelFetch(tex, ivec2(coord.x - (x2 - quad), coord.y), 0);
+            fragColor += texelFetch(tex, ivec2(coord.x + (quad - x2), coord.y), 0);
+            fragColor += texelFetch(tex, ivec2(coord.x, coord.y - quad), 0);
+            fragColor += texelFetch(tex, ivec2(coord.x, coord.y + quad), 0);
+            fragColor /= 4;
+        }
         else
             discard;
     }
     else if (xmod >= quad && ymod < quad) // bottom left
     {
         if (d2 > sqr(thresh2))
-            fragColor = texelFetch(tex, ivec2(500, 500), 0);
+        {
+            fragColor = vec4(0.0);
+            fragColor += texelFetch(tex, ivec2(coord.x - quad, coord.y), 0);
+            fragColor += texelFetch(tex, ivec2(coord.x + quad, coord.y), 0);
+            fragColor += texelFetch(tex, ivec2(coord.x, coord.y - quad), 0);
+            fragColor += texelFetch(tex, ivec2(coord.x, coord.y + quad), 0);
+            fragColor /= 4;
+        }
         else
             discard;
     }
     else // bottom right
     {
         if (d2 > sqr(thresh3))
-            fragColor = texelFetch(tex, ivec2(500, 500), 0);
+        {
+            fragColor = vec4(0.0);
+            fragColor += texelFetch(tex, ivec2(coord.x - (x2 - quad), coord.y), 0);
+            fragColor += texelFetch(tex, ivec2(coord.x + (quad - x2), coord.y), 0);
+            fragColor /= 2;
+        }
         else
             discard;
     }
