@@ -6,6 +6,9 @@ uniform float iTime;
 uniform vec2 iMouse;
 uniform int iFrame;
 
+in vec2 texCoord;
+uniform sampler2D tex;
+
 // constant vars
 const int stride = 16;
 const int quad = stride / 2;
@@ -34,31 +37,32 @@ void main()
     float xmod = mod(coord.x - 0.5, stride);
     float ymod = mod(coord.y - 0.5, stride);
 
-    if (xmod < quad && ymod < quad) // top left
-    {
-        // no op
-        discard;
-        // fragColor = expensive_main();
-    }
-    else if (xmod < quad && ymod >= quad) // top right
-    {
-        if (d2 > sqr_2(thresh1_2))
-            fragColor = vec4(1, 0, 1, 1);
-        else
-            discard;
-    }
-    else if (xmod >= quad && ymod < quad) // bottom left
-    {
-        if (d2 > sqr_2(thresh2_2))
-            fragColor = vec4(1, 0, 1, 1);
-        else
-            discard;
-    }
-    else // bottom right
-    {
-        if (d2 > sqr_2(thresh3_2))
-            fragColor = vec4(1, 0, 1, 1);
-        else
-            discard;
-    }
+    // if (xmod < quad && ymod < quad) // top left
+    // {
+    //     // no op
+    //     discard;
+    // }
+    // else if (xmod < quad && ymod >= quad) // top right
+    // {
+    //     if (d2 > sqr_2(thresh1_2))
+    //         fragColor = vec4(1, 0, 1, 1);
+    //     else
+    //         discard;
+    // }
+    // else if (xmod >= quad && ymod < quad) // bottom left
+    // {
+    //     if (d2 > sqr_2(thresh2_2))
+    //         fragColor = vec4(1, 0, 1, 1);
+    //     else
+    //         discard;
+    // }
+    // else // bottom right
+    // {
+    //     if (d2 > sqr_2(thresh3_2))
+    //         fragColor = vec4(1, 0, 1, 1);
+    //     else
+    //         discard;
+    // }
+    fragColor = texelFetch(tex, ivec2(coord), 0);
+    // fragColor = vec4(1, texelFetch(tex, ivec2(coord * 0.5 + 0.5), 0).g, 0, 1); // vec4(1, 0, 1, 1);
 }

@@ -155,11 +155,38 @@ int main(int argc, char *argv[])
         1.0f, -1.0f, 0.0f,  // Bottom-right
     };
 
+    // create frame buffer object
+    GLuint FBO;
+    glGenFramebuffers(1, &FBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    // create texture map for FBO
+    GLuint texture_map;
+    glGenTextures(1, &texture_map);
+    glBindTexture(GL_TEXTURE_2D, texture_map);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screen_size[0], screen_size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // link the texture map with the FBO
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_map, 0);
+    // check for problems
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cerr << "can't initialize FBO" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+    // unbind to not accidentally render to it
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // create vertex buffer object
     GLuint VBO;
     glGenBuffers(1, &VBO); // generate 1 vertex buffer object
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(CanvasVerts), CanvasVerts, GL_STATIC_DRAW);
 
+    // create vertex attribute object
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
@@ -187,6 +214,9 @@ int main(int argc, char *argv[])
         int shaderProgram = main_program.GetProgram();
         int reconstructProgram = reconstruct_program.GetProgram();
 
+        // first, render to custom FBO
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+
         // Clear canvas
         glClearColor(0.f, 0.f, 0.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -198,6 +228,11 @@ int main(int argc, char *argv[])
         glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
 
         // Draw reconstruction shader
+
+        // render FBO as fullscreen quad on default FBO
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);      // unbind your FBO to set the default FBO
+        glBindTexture(GL_TEXTURE_2D, texture_map); // bind texture to current active texture
+
         glUseProgram(reconstructProgram);
         TalkWithProgram(reconstructProgram, window, nbFrames, screen_size, mouse_pos);
         glBindVertexArray(VAO);
@@ -227,6 +262,8 @@ int main(int argc, char *argv[])
             bReloadDown = false;
         }
 
+        /// TODO: use arrow keys to switch between shaders!!
+
         // display fps in title
         displayFps(lastTime, nbFrames, window);
 
@@ -236,6 +273,7 @@ int main(int argc, char *argv[])
 
     // ... here, the user closed the window
     glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &FBO);
     glDeleteVertexArrays(1, &VAO);
     glfwTerminate();
     return 0;
