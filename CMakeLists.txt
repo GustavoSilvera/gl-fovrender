@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
-set(PROJECT_NAME "ogl-playground")
+set(PROJECT_NAME "gl-fovrender")
 project(${PROJECT_NAME} VERSION 1.0)
 
 add_definitions(-std=c++17)
