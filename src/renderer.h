@@ -18,8 +18,14 @@ class Renderer
   private:
     bool CreateWindow();
     void DisplayFps();
-    void TalkWithProgram(int program);
+    void TalkWithProgram(int ProgramIdx);
+    void CheckInputs();
     void TickClock();
+
+    // render thread
+    void RenderPass();
+    void PostprocessingPass();
+
     ParamsStruct Params;
 
     // buffer objects
@@ -34,18 +40,20 @@ class Renderer
     double LastTime;
     double LastTime1Sec;
     int NumFrames;
-    bool bTickClock;
+    bool bTickClock = true; // start ticking
 
     // input params
     double MouseX, MouseY;
     // button press rising-edge actions
-    bool bPauseDown = false;
+    bool bPauseDown = false;  // only pause on rising edge
+    bool bReloadDown = false; // only reload on rising edge
 
     // window
     GLFWwindow *window = nullptr;
 
-    ShaderUtils::MainProgram main_program;
-    ShaderUtils::Program reconstruct_program;
+    // shader programs
+    ShaderUtils::MainProgram Main;
+    ShaderUtils::Program PostProc;
 
   public:
     Renderer(int argc, char *argv[]);

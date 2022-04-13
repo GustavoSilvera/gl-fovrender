@@ -12,6 +12,9 @@ Renderer::Renderer(int argc, char *argv[])
 
 bool Renderer::CreateWindow()
 {
+    WindowW = Params.WindowParams.X0;
+    WindowH = Params.WindowParams.Y0;
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -33,6 +36,7 @@ bool Renderer::CreateWindow()
 
 void Renderer::DisplayFps()
 {
+    assert(window != nullptr);
     const double DeltaT = glfwGetTime() - LastTime1Sec;
     NumFrames++;
     if (DeltaT > 1.f) // more than a second ago
@@ -41,9 +45,31 @@ void Renderer::DisplayFps()
         std::stringstream ss;
         ss << "[" << Fps << " FPS]";
         glfwSetWindowTitle(window, ss.str().c_str());
-        // std::cout << "FPS: " << 1.f / (currentTime - lastTime) << std::endl;
         NumFrames = 0;
         LastTime1Sec = glfwGetTime();
+    }
+}
+
+void Renderer::CheckInputs()
+{
+    // check for closing window
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, true);
+    }
+
+    // check for reloading shaders
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !bReloadDown)
+    {
+        std::cout << "Reloading..." << std::endl;
+        bReloadDown = true;
+        Params.ParseFile();  // reload global params
+        Main.Reload(Params); // reload main param & shaders
+        PostProc.Reload();   // reload postprocessing shaders
+    }
+    else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE)
+    {
+        bReloadDown = false;
     }
 }
 
@@ -65,27 +91,26 @@ void Renderer::TickClock()
         bPauseDown = false;
     }
 
-    /// TODO: make this continue from where it left off
     if (bTickClock)
-        CurrentTime += glfwGetTime() - LastTime;
+        CurrentTime += glfwGetTime() - LastTime; // using deltas to continue where left off
     LastTime = glfwGetTime();
 }
 
-void Renderer::TalkWithProgram(int program)
+void Renderer::TalkWithProgram(int ProgramIdx)
 {
     // send data to the active shader program
 
     // send iTime
-    glUniform1f(glGetUniformLocation(program, "iTime"), CurrentTime);
+    glUniform1f(glGetUniformLocation(ProgramIdx, "iTime"), CurrentTime);
 
     // send iFrame
-    glUniform1i(glGetUniformLocation(program, "iFrame"), NumFrames);
+    glUniform1i(glGetUniformLocation(ProgramIdx, "iFrame"), NumFrames);
 
     // send iResolution
     glfwGetFramebufferSize(window, &WindowW, &WindowH);
     glViewport(0, 0, WindowW, WindowH);
     float ScreenSize[] = {static_cast<float>(WindowW), static_cast<float>(WindowH)};
-    glUniform2fv(glGetUniformLocation(program, "iResolution"), 1, ScreenSize);
+    glUniform2fv(glGetUniformLocation(ProgramIdx, "iResolution"), 1, ScreenSize);
 
     // send iMouse
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
@@ -94,17 +119,17 @@ void Renderer::TalkWithProgram(int program)
         glfwGetCursorPos(window, &MouseX, &MouseY);
     }
     float mouse_pos_f[] = {static_cast<float>(MouseX), static_cast<float>(MouseY)};
-    glUniform2fv(glGetUniformLocation(program, "iMouse"), 1, mouse_pos_f);
+    glUniform2fv(glGetUniformLocation(ProgramIdx, "iMouse"), 1, mouse_pos_f);
 
     // communicate foveated render params
-    glUniform1i(glGetUniformLocation(program, "stride"), 32);
+    glUniform1i(glGetUniformLocation(ProgramIdx, "stride"), 32);
     const float diag = 0.5f * (WindowW + WindowH);
     const float thresh1 = 0.1f * diag;
     const float thresh2 = 0.25f * diag;
     const float thresh3 = 0.4f * diag;
-    glUniform1f(glGetUniformLocation(program, "thresh1"), thresh1);
-    glUniform1f(glGetUniformLocation(program, "thresh2"), thresh2);
-    glUniform1f(glGetUniformLocation(program, "thresh3"), thresh3);
+    glUniform1f(glGetUniformLocation(ProgramIdx, "thresh1"), thresh1);
+    glUniform1f(glGetUniformLocation(ProgramIdx, "thresh2"), thresh2);
+    glUniform1f(glGetUniformLocation(ProgramIdx, "thresh3"), thresh3);
 }
 
 bool Renderer::Init()
@@ -115,9 +140,6 @@ bool Renderer::Init()
         std::cerr << "could not start GLFW3" << std::endl;
         return false;
     }
-
-    WindowW = Params.WindowParams.X0;
-    WindowH = Params.WindowParams.Y0;
 
     if (!CreateWindow())
     {
@@ -131,8 +153,8 @@ bool Renderer::Init()
     std::cout << "Renderer: " << renderer << std::endl;
     std::cout << "OpenGL version supported: " << version << std::endl << std::endl;
 
-    main_program = ShaderUtils::MainProgram{};
-    bool status = main_program.loadShaders(Params);
+    Main = ShaderUtils::MainProgram{};
+    bool status = Main.loadShaders(Params);
 
     if (!status)
     {
@@ -141,8 +163,8 @@ bool Renderer::Init()
         return false;
     }
 
-    reconstruct_program = ShaderUtils::Program{};
-    status = reconstruct_program.loadShaders({
+    PostProc = ShaderUtils::Program{};
+    status = PostProc.loadShaders({
         ShaderUtils::Shader(Params.MainParams.vertex_shader_path, "vertex", GL_VERTEX_SHADER),
         ShaderUtils::Shader(Params.FRParams.reconstruction_shader, "reconstruct", GL_FRAGMENT_SHADER),
     });
@@ -212,6 +234,47 @@ bool Renderer::Init()
     return true;
 }
 
+void Renderer::RenderPass()
+{
+    int MainProgram = Main.GetProgram();
+
+    // first, render to default framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Clear canvas
+    glClearColor(0.f, 0.f, 0.f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Draw main shader
+    glUseProgram(MainProgram);
+    TalkWithProgram(MainProgram);
+    glBindVertexArray(VAO);
+
+    // peform the drawing
+    glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
+}
+
+void Renderer::PostprocessingPass()
+{
+    if (Params.bEnablePostProcessing)
+    {
+        int ReconstructionProgram = PostProc.GetProgram();
+        // copy framebuffer (current rendered buffer) to FBO (& its texture)
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBO);
+        glBlitFramebuffer(0, 0, WindowW, WindowH, 0, 0, WindowW, WindowH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, Tex); // bind texture to current active texture
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); // render on default framebuffer
+        glUseProgram(ReconstructionProgram);
+        TalkWithProgram(ReconstructionProgram);
+        glBindVertexArray(VAO);
+        // peform the drawing
+        glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
+    }
+}
+
 bool Renderer::Run()
 {
     assert(window != nullptr);
@@ -219,67 +282,18 @@ bool Renderer::Run()
     // get mouse pos
     glfwGetCursorPos(window, &MouseX, &MouseY);
     LastTime = glfwGetTime();
-    int NumFrames = 0;
-    bool bReloadDown = false; // only reload on rising edge
-    bool bPauseDown = false;  // only pause on rising edge
-    bool bTickClock = true;   // tick clock initially
-    float currentTime = 0.f;
+    NumFrames = 0;
     while (!glfwWindowShouldClose(window))
     {
-        int shaderProgram = main_program.GetProgram();
-        int reconstructProgram = reconstruct_program.GetProgram();
 
-        // first, render to default
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        RenderPass();
 
-        // Clear canvas
-        glClearColor(0.f, 0.f, 0.f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        // Draw main shader
-        glUseProgram(shaderProgram);
-        TalkWithProgram(shaderProgram);
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
-
-        // copy framebuffer (current rendered buffer) to FBO (& its texture)
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBO);
-        glBlitFramebuffer(0, 0, WindowW, WindowH, 0, 0, WindowW, WindowH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-        // Draw reconstruction shader
-
-        glBindTexture(GL_TEXTURE_2D, Tex); // bind texture to current active texture
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0); // render on default framebuffer
-        glUseProgram(reconstructProgram);
-        TalkWithProgram(reconstructProgram);
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
+        PostprocessingPass();
 
         // Poll for and process events
         glfwPollEvents();
 
-        // check for closing window
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        {
-            glfwSetWindowShouldClose(window, true);
-        }
-
-        // check for reloading shaders
-        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !bReloadDown)
-        {
-            std::cout << "Reloading shaders..." << std::endl;
-            bReloadDown = true;
-            /// TODO: reload shaders with new params
-            main_program.Reload();
-            reconstruct_program.Reload();
-            std::cout << "Done!" << std::endl;
-        }
-        else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE)
-        {
-            bReloadDown = false;
-        }
+        CheckInputs(); // check for miscellaneous input actions
 
         TickClock();
 

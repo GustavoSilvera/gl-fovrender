@@ -46,12 +46,11 @@ struct MainProgram : Program
 {
   private:
     std::vector<std::string> OtherShaderPaths;
-    ParamsStruct Params;
     size_t ShaderIdx = 0;
 
   public:
     bool loadShaders(const ParamsStruct &P);
-    bool Reload();
+    bool Reload(const ParamsStruct &P);
 };
 
 } // namespace ShaderUtils

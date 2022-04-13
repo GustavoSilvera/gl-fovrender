@@ -39,7 +39,7 @@ inline auto readFile(const std::string_view path) -> const std::string
 
 struct MainShaderParams
 {
-    std::string vertex_shader_path, fragment_shader_dir, fragment_shader_name;
+    std::string vertex_shader_path, non_fr_fragment_shader_path, fragment_shader_dir, fragment_shader_name;
 };
 
 struct FRShaderParams
@@ -55,6 +55,8 @@ struct WindowParamsStruct
 struct ParamsStruct
 {
     bool bEnableVsync;
+    bool bEnableFovRender, bEnablePostProcessing;
+
     MainShaderParams MainParams;
     FRShaderParams FRParams;
     WindowParamsStruct WindowParams;
@@ -84,10 +86,16 @@ struct ParamsStruct
             std::string ParamValue = Tmp.substr(Tmp.find(Delim) + 1, Tmp.size());
             if (!ParamName.compare("enable_vsync"))
                 bEnableVsync = stob(ParamValue);
+            else if (!ParamName.compare("enable_foveated_render"))
+                bEnableFovRender = stob(ParamValue);
+            else if (!ParamName.compare("enable_postprocessing"))
+                bEnablePostProcessing = stob(ParamValue);
             else if (!ParamName.compare("vertex_shader"))
                 MainParams.vertex_shader_path = ParamValue;
             else if (!ParamName.compare("fragment_shaders"))
                 MainParams.fragment_shader_dir = ParamValue;
+            else if (!ParamName.compare("non_fr_fragment_shader"))
+                MainParams.non_fr_fragment_shader_path = ParamValue;
             else if (!ParamName.compare("start_frag_shader"))
                 MainParams.fragment_shader_name = ParamValue;
             else if (!ParamName.compare("fr_fragment_shader"))

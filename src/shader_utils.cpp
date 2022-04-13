@@ -34,7 +34,7 @@ bool Program::Reload()
 
 bool Program::loadShaders(const std::vector<Shader> &ShaderStructList)
 {
-    std::cout << "Starting program creation" << std::endl;
+    std::cout << std::endl;
     Shaders = ShaderStructList;
     for (auto &ShaderStruct : Shaders)
     {
@@ -118,13 +118,13 @@ void Program::DeleteShaders()
 
 bool MainProgram::loadShaders(const ParamsStruct &P)
 {
-    Params = P;
     Shaders.clear();
     Shaders = {
         ShaderUtils::Shader(P.MainParams.vertex_shader_path, "vertex", GL_VERTEX_SHADER),
         ShaderUtils::Shader(P.MainParams.fragment_shader_dir + P.MainParams.fragment_shader_name, "main",
                             GL_FRAGMENT_SHADER),
-        ShaderUtils::Shader(P.FRParams.drop_shader, "fragment", GL_FRAGMENT_SHADER),
+        ShaderUtils::Shader(P.bEnableFovRender ? P.FRParams.drop_shader : P.MainParams.non_fr_fragment_shader_path,
+                            "fragment", GL_FRAGMENT_SHADER),
     };
     // read all the shaders in the FragmentShaderPath
     for (const auto &file : std::filesystem::directory_iterator(P.MainParams.fragment_shader_dir))
@@ -139,16 +139,17 @@ bool MainProgram::loadShaders(const ParamsStruct &P)
     return Program::loadShaders(Shaders);
 }
 
-bool MainProgram::Reload()
+bool MainProgram::Reload(const ParamsStruct &P)
 {
-    Params.ParseFile();
+    // expects an up-to-date ParamsStruct instance
     if (OtherShaderPaths.size() > 0)
     {
         Shaders.clear();
         Shaders = {
-            ShaderUtils::Shader(Params.MainParams.vertex_shader_path, "vertex", GL_VERTEX_SHADER),
+            ShaderUtils::Shader(P.MainParams.vertex_shader_path, "vertex", GL_VERTEX_SHADER),
             ShaderUtils::Shader(OtherShaderPaths[ShaderIdx], "main", GL_FRAGMENT_SHADER),
-            ShaderUtils::Shader(Params.FRParams.drop_shader, "fragment", GL_FRAGMENT_SHADER),
+            ShaderUtils::Shader(P.bEnableFovRender ? P.FRParams.drop_shader : P.MainParams.non_fr_fragment_shader_path,
+                                "fragment", GL_FRAGMENT_SHADER),
         };
         ShaderIdx = (ShaderIdx + 1) % OtherShaderPaths.size();
     }
