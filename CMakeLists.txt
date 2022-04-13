@@ -6,7 +6,7 @@ project(${PROJECT_NAME} VERSION 1.0)
 add_definitions(-std=c++17)
 set(CXX_FLAGS "-Wall" "-Werror" "-Wextra" "-O3" "-fsanitize=undefined,address")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
 
 add_executable(${PROJECT_NAME} src/shader_utils.cpp src/renderer.cpp src/main.cpp)

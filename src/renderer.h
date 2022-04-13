@@ -21,6 +21,10 @@ class Renderer
     void TalkWithProgram(int ProgramIdx);
     void CheckInputs();
     void TickClock();
+    bool GenerateFBO();
+
+    // callbacks
+    void FramebufferResizeCallback();
 
     // render thread
     void RenderPass();
@@ -33,6 +37,7 @@ class Renderer
 
     // window params
     int WindowW, WindowH;
+    int LastWindowW, LastWindowH; // checking for window resize
     bool bEnableVsync = false;
 
     // other

@@ -34,6 +34,57 @@ bool Renderer::CreateWindow()
     return true;
 }
 
+void Renderer::FramebufferResizeCallback()
+{
+    glfwGetFramebufferSize(window, &WindowW, &WindowH);
+
+    if (WindowW != LastWindowW || WindowH != LastWindowH)
+    {
+
+        std::cout << "Detected FB size change from "
+                  << "(" << LastWindowW << " x " << LastWindowH << ") to (" << WindowW << " x " << WindowH << ")"
+                  << std::endl;
+        LastWindowW = WindowW;
+        LastWindowH = WindowH;
+
+        glViewport(0, 0, WindowW, WindowH);
+
+        if (Params.bEnablePostProcessing)
+        {
+            // glDeleteBuffers(1, &FBO);
+            glDeleteTextures(1, &Tex);
+
+            // generate new FB texture for postprocessing
+            GenerateFBO();
+        }
+    }
+}
+
+bool Renderer::GenerateFBO()
+{
+    // create frame buffer object
+    glGenFramebuffers(1, &FBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    // create texture map for FBO
+    glGenTextures(1, &Tex);
+    glBindTexture(GL_TEXTURE_2D, Tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WindowW, WindowH, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // link the texture map with the FBO
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, Tex, 0);
+    // check for problems
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cerr << "can't initialize FBO" << std::endl;
+        glfwTerminate();
+        return false;
+    }
+    return true;
+}
+
 void Renderer::DisplayFps()
 {
     assert(window != nullptr);
@@ -107,8 +158,6 @@ void Renderer::TalkWithProgram(int ProgramIdx)
     glUniform1i(glGetUniformLocation(ProgramIdx, "iFrame"), NumFrames);
 
     // send iResolution
-    glfwGetFramebufferSize(window, &WindowW, &WindowH);
-    glViewport(0, 0, WindowW, WindowH);
     float ScreenSize[] = {static_cast<float>(WindowW), static_cast<float>(WindowH)};
     glUniform2fv(glGetUniformLocation(ProgramIdx, "iResolution"), 1, ScreenSize);
 
@@ -193,28 +242,8 @@ bool Renderer::Init()
     };
 
     // create frame buffer object
-    glGenFramebuffers(1, &FBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-    // create texture map for FBO
-    glGenTextures(1, &Tex);
-    glBindTexture(GL_TEXTURE_2D, Tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WindowW, WindowH, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    // link the texture map with the FBO
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, Tex, 0);
-    // check for problems
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    {
-        std::cerr << "can't initialize FBO" << std::endl;
-        glfwTerminate();
+    if (!GenerateFBO())
         return false;
-    }
-    // unbind to not accidentally render to it
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
     // create vertex buffer object
     glGenBuffers(1, &VBO); // generate 1 vertex buffer object
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -283,6 +312,8 @@ bool Renderer::Run()
     assert(window != nullptr);
     while (!glfwWindowShouldClose(window))
     {
+        FramebufferResizeCallback(); // check for frame buffer size change
+
         RenderPass(); // perform main draw pass
 
         PostprocessingPass(); // perform postprocessing effects
@@ -308,6 +339,7 @@ bool Renderer::Exit()
     std::cout << std::endl << "Goodbye!" << std::endl;
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &FBO);
+    glDeleteTextures(1, &Tex);
     glDeleteVertexArrays(1, &VAO);
     glfwTerminate();
     return true;
