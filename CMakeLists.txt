@@ -9,7 +9,7 @@ set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 set(CMAKE_BUILD_TYPE Debug)
 
 
-add_executable(${PROJECT_NAME} src/shader_utils.cpp src/main.cpp)
+add_executable(${PROJECT_NAME} src/shader_utils.cpp src/renderer.cpp src/main.cpp)
 
 find_package(glfw3 3.4 REQUIRED)
 find_package(OpenGL REQUIRED)
