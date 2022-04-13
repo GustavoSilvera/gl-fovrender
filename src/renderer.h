@@ -17,19 +17,32 @@ class Renderer
 {
   private:
     bool CreateWindow();
-    void displayFps(double &lastTime, int &nbFrames, GLFWwindow *pWindow);
-    void TalkWithProgram(int program, GLFWwindow *window, int nbFrames, int *screen_size, double *mouse_pos,
-                         float currentTime);
+    void DisplayFps();
+    void TalkWithProgram(int program);
+    void TickClock();
     ParamsStruct Params;
 
     // buffer objects
     GLuint FBO, VBO, VAO, Tex;
 
-    // screen params
-    int *screen_size = nullptr;
+    // window params
+    int WindowW, WindowH;
+    bool bEnableVsync = false;
+
+    // other
+    double CurrentTime;
+    double LastTime;
+    double LastTime1Sec;
+    int NumFrames;
+    bool bTickClock;
+
+    // input params
+    double MouseX, MouseY;
+    // button press rising-edge actions
+    bool bPauseDown = false;
 
     // window
-    GLFWwindow *window;
+    GLFWwindow *window = nullptr;
 
     ShaderUtils::MainProgram main_program;
     ShaderUtils::Program reconstruct_program;

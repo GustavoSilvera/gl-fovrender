@@ -17,7 +17,7 @@ bool Renderer::CreateWindow()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     const auto T0 = "Loading shaders..."; // initial title
-    window = glfwCreateWindow(screen_size[0], screen_size[1], T0, nullptr, nullptr);
+    window = glfwCreateWindow(WindowW, WindowH, T0, nullptr, nullptr);
     if (!window)
     {
         std::cerr << "window creation failed" << std::endl;
@@ -26,57 +26,79 @@ bool Renderer::CreateWindow()
     // Makes the window context current
     glfwMakeContextCurrent(window);
     // Enable the viewport
-    glfwGetFramebufferSize(window, &screen_size[0], &screen_size[1]);
-    glViewport(0, 0, screen_size[0], screen_size[1]);
+    glfwGetFramebufferSize(window, &WindowW, &WindowH);
+    glViewport(0, 0, WindowW, WindowH);
     return true;
 }
 
-void Renderer::displayFps(double &lastTime, int &nbFrames, GLFWwindow *pWindow)
+void Renderer::DisplayFps()
 {
-    double currentTime = glfwGetTime();
-    double delta = currentTime - lastTime;
-    nbFrames++;
-    if (delta > 1.f) // more than a second ago
+    const double DeltaT = glfwGetTime() - LastTime1Sec;
+    NumFrames++;
+    if (DeltaT > 1.f) // more than a second ago
     {
-        const double fps = double(nbFrames) / delta;
+        const double Fps = double(NumFrames) / DeltaT;
         std::stringstream ss;
-        ss << "[" << fps << " FPS]";
-        glfwSetWindowTitle(pWindow, ss.str().c_str());
+        ss << "[" << Fps << " FPS]";
+        glfwSetWindowTitle(window, ss.str().c_str());
         // std::cout << "FPS: " << 1.f / (currentTime - lastTime) << std::endl;
-        nbFrames = 0;
-        lastTime = currentTime;
+        NumFrames = 0;
+        LastTime1Sec = glfwGetTime();
     }
 }
 
-void Renderer::TalkWithProgram(int program, GLFWwindow *window, int nbFrames, int *screen_size, double *mouse_pos,
-                               float currentTime)
+void Renderer::TickClock()
+{
+    assert(window != nullptr);
+    // check for toggling time shaders
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !bPauseDown)
+    {
+        bTickClock = !bTickClock;
+        if (!bTickClock)
+            std::cout << "Freezing clock @ " << glfwGetTime() << std::endl;
+        else
+            std::cout << "Resuming clock @ " << glfwGetTime() << std::endl;
+        bPauseDown = true;
+    }
+    else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
+    {
+        bPauseDown = false;
+    }
+
+    /// TODO: make this continue from where it left off
+    if (bTickClock)
+        CurrentTime += glfwGetTime() - LastTime;
+    LastTime = glfwGetTime();
+}
+
+void Renderer::TalkWithProgram(int program)
 {
     // send data to the active shader program
 
     // send iTime
-    glUniform1f(glGetUniformLocation(program, "iTime"), currentTime);
+    glUniform1f(glGetUniformLocation(program, "iTime"), CurrentTime);
 
     // send iFrame
-    glUniform1i(glGetUniformLocation(program, "iFrame"), nbFrames);
+    glUniform1i(glGetUniformLocation(program, "iFrame"), NumFrames);
 
     // send iResolution
-    glfwGetFramebufferSize(window, &screen_size[0], &screen_size[1]);
-    glViewport(0, 0, screen_size[0], screen_size[1]);
-    float screen_size_f[] = {static_cast<float>(screen_size[0]), static_cast<float>(screen_size[1])};
-    glUniform2fv(glGetUniformLocation(program, "iResolution"), 1, screen_size_f);
+    glfwGetFramebufferSize(window, &WindowW, &WindowH);
+    glViewport(0, 0, WindowW, WindowH);
+    float ScreenSize[] = {static_cast<float>(WindowW), static_cast<float>(WindowH)};
+    glUniform2fv(glGetUniformLocation(program, "iResolution"), 1, ScreenSize);
 
     // send iMouse
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
         // only capture mouse pos when (left) pressed
-        glfwGetCursorPos(window, &mouse_pos[0], &mouse_pos[1]);
+        glfwGetCursorPos(window, &MouseX, &MouseY);
     }
-    float mouse_pos_f[] = {static_cast<float>(mouse_pos[0]), static_cast<float>(mouse_pos[1])};
+    float mouse_pos_f[] = {static_cast<float>(MouseX), static_cast<float>(MouseY)};
     glUniform2fv(glGetUniformLocation(program, "iMouse"), 1, mouse_pos_f);
 
     // communicate foveated render params
     glUniform1i(glGetUniformLocation(program, "stride"), 32);
-    const float diag = 0.5f * (screen_size[0] + screen_size[1]);
+    const float diag = 0.5f * (WindowW + WindowH);
     const float thresh1 = 0.1f * diag;
     const float thresh2 = 0.25f * diag;
     const float thresh3 = 0.4f * diag;
@@ -94,12 +116,8 @@ bool Renderer::Init()
         return false;
     }
 
-    const int W = Params.WindowParams.X0;
-    const int H = Params.WindowParams.Y0;
-
-    screen_size = (int *)malloc(2 * sizeof(int));
-    screen_size[0] = W;
-    screen_size[1] = H;
+    WindowW = Params.WindowParams.X0;
+    WindowH = Params.WindowParams.Y0;
 
     if (!CreateWindow())
     {
@@ -155,7 +173,7 @@ bool Renderer::Init()
     // create texture map for FBO
     glGenTextures(1, &Tex);
     glBindTexture(GL_TEXTURE_2D, Tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screen_size[0], screen_size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WindowW, WindowH, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -188,19 +206,20 @@ bool Renderer::Init()
     glEnableVertexAttribArray(0);
 
     // disable vsync
-    bool enable_vsync = Params.bEnableVsync;
-    glfwSwapInterval(int(enable_vsync));
+    bEnableVsync = Params.bEnableVsync;
+    glfwSwapInterval(bEnableVsync);
 
     return true;
 }
 
 bool Renderer::Run()
 {
+    assert(window != nullptr);
+
     // get mouse pos
-    double mouse_pos[] = {0.0, 0.0};
-    glfwGetCursorPos(window, &mouse_pos[0], &mouse_pos[1]);
-    double lastTime = glfwGetTime();
-    int nbFrames = 0;
+    glfwGetCursorPos(window, &MouseX, &MouseY);
+    LastTime = glfwGetTime();
+    int NumFrames = 0;
     bool bReloadDown = false; // only reload on rising edge
     bool bPauseDown = false;  // only pause on rising edge
     bool bTickClock = true;   // tick clock initially
@@ -219,7 +238,7 @@ bool Renderer::Run()
 
         // Draw main shader
         glUseProgram(shaderProgram);
-        TalkWithProgram(shaderProgram, window, nbFrames, screen_size, mouse_pos, currentTime);
+        TalkWithProgram(shaderProgram);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
 
@@ -227,15 +246,14 @@ bool Renderer::Run()
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FBO);
-        glBlitFramebuffer(0, 0, screen_size[0], screen_size[1], 0, 0, screen_size[0], screen_size[1],
-                          GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        glBlitFramebuffer(0, 0, WindowW, WindowH, 0, 0, WindowW, WindowH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
         // Draw reconstruction shader
 
         glBindTexture(GL_TEXTURE_2D, Tex); // bind texture to current active texture
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // render on default framebuffer
         glUseProgram(reconstructProgram);
-        TalkWithProgram(reconstructProgram, window, nbFrames, screen_size, mouse_pos, currentTime);
+        TalkWithProgram(reconstructProgram);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
 
@@ -263,26 +281,12 @@ bool Renderer::Run()
             bReloadDown = false;
         }
 
-        // check for toggling time shaders
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !bPauseDown)
-        {
-            std::cout << "Pausing shaders..." << std::endl;
-            bTickClock = !bTickClock;
-            bPauseDown = true;
-        }
-        else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
-        {
-            bPauseDown = false;
-        }
-
-        /// TODO: make this continue from where it left off
-        if (bTickClock)
-            currentTime = glfwGetTime();
+        TickClock();
 
         /// TODO: use arrow keys to switch between shaders!!
 
         // display fps in title
-        displayFps(lastTime, nbFrames, window);
+        DisplayFps();
 
         // Swap front and back buffers
         glfwSwapBuffers(window);
