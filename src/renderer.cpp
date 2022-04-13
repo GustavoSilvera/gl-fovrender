@@ -113,13 +113,15 @@ void Renderer::TalkWithProgram(int ProgramIdx)
     glUniform2fv(glGetUniformLocation(ProgramIdx, "iResolution"), 1, ScreenSize);
 
     // send iMouse
+    glfwGetCursorPos(window, &MouseX, &MouseY);
+    float mouse_pos_f[] = {static_cast<float>(MouseX), static_cast<float>(MouseY)};
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
         // only capture mouse pos when (left) pressed
-        glfwGetCursorPos(window, &MouseX, &MouseY);
+        glUniform2fv(glGetUniformLocation(ProgramIdx, "iMouse"), 1, mouse_pos_f);
     }
-    float mouse_pos_f[] = {static_cast<float>(MouseX), static_cast<float>(MouseY)};
-    glUniform2fv(glGetUniformLocation(ProgramIdx, "iMouse"), 1, mouse_pos_f);
+    // pass in to "Mouse" regardless of click+drag (only need move)
+    glUniform2fv(glGetUniformLocation(ProgramIdx, "Mouse"), 1, mouse_pos_f);
 
     // communicate foveated render params
     glUniform1i(glGetUniformLocation(ProgramIdx, "stride"), Params.FRParams.stride);

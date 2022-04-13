@@ -4,6 +4,7 @@ layout(location = 0) out vec4 fragColor;
 uniform vec2 iResolution;
 uniform float iTime;
 uniform vec2 iMouse;
+uniform vec2 Mouse;
 uniform int iFrame;
 
 // foveated render vars
@@ -31,7 +32,7 @@ float sqr(const float a)
 void main()
 {
     vec2 coord = gl_FragCoord.xy - 0.5; // top left corner of pixel
-    float d2 = norm2(coord - 2 * vec2(iMouse.x, -iMouse.y + iResolution.y / 2));
+    float d2 = norm2(coord - 2 * vec2(Mouse.x, -Mouse.y + iResolution.y / 2));
 
     // which quad am on?
     float xmod = mod(coord.x, stride);
