@@ -23,7 +23,7 @@ class Renderer
     ParamsStruct Params;
 
     // buffer objects
-    GLuint FBO, VBO, VAO, texture_map;
+    GLuint FBO, VBO, VAO, Tex;
 
     // screen params
     int *screen_size = nullptr;
@@ -35,9 +35,7 @@ class Renderer
     ShaderUtils::Program reconstruct_program;
 
   public:
-    Renderer(struct ParamsStruct &P) : Params(P)
-    {
-    }
+    Renderer(int argc, char *argv[]);
 
     bool Init();
     bool Run();

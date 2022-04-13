@@ -3,6 +3,13 @@
 #include <iostream>
 #include <sstream>
 
+Renderer::Renderer(int argc, char *argv[])
+{
+
+    Params.FilePath = (argc > 1) ? argv[1] : "../params/params.ini";
+    Params.ParseFile();
+}
+
 bool Renderer::CreateWindow()
 {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -104,7 +111,7 @@ bool Renderer::Init()
     const GLubyte *renderer = glGetString(GL_RENDERER);
     const GLubyte *version = glGetString(GL_VERSION);
     std::cout << "Renderer: " << renderer << std::endl;
-    std::cout << "OpenGL version supported: " << version << std::endl;
+    std::cout << "OpenGL version supported: " << version << std::endl << std::endl;
 
     main_program = ShaderUtils::MainProgram{};
     bool status = main_program.loadShaders(Params);
@@ -146,15 +153,15 @@ bool Renderer::Init()
     glGenFramebuffers(1, &FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     // create texture map for FBO
-    glGenTextures(1, &texture_map);
-    glBindTexture(GL_TEXTURE_2D, texture_map);
+    glGenTextures(1, &Tex);
+    glBindTexture(GL_TEXTURE_2D, Tex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screen_size[0], screen_size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     // link the texture map with the FBO
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_map, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, Tex, 0);
     // check for problems
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
@@ -224,11 +231,9 @@ bool Renderer::Run()
                           GL_COLOR_BUFFER_BIT, GL_LINEAR);
         // Draw reconstruction shader
 
-        // render FBO as fullscreen quad on default FBO
-        // glBindFramebuffer(GL_FRAMEBUFFER, 0);      // unbind your FBO to set the default FBO
-        glBindTexture(GL_TEXTURE_2D, texture_map); // bind texture to current active texture
+        glBindTexture(GL_TEXTURE_2D, Tex); // bind texture to current active texture
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); // render on default framebuffer
         glUseProgram(reconstructProgram);
         TalkWithProgram(reconstructProgram, window, nbFrames, screen_size, mouse_pos, currentTime);
         glBindVertexArray(VAO);
@@ -288,9 +293,10 @@ bool Renderer::Run()
 
 bool Renderer::Exit()
 {
+    std::cout << std::endl << "Goodbye!" << std::endl;
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &FBO);
     glDeleteVertexArrays(1, &VAO);
     glfwTerminate();
-    return 0;
+    return true;
 }
