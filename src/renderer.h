@@ -24,7 +24,7 @@ class Renderer
     bool GenerateFBO();
 
     // callbacks
-    void FramebufferResizeCallback();
+    void WindowCallbacks();
 
     // render thread
     void RenderPass();
@@ -39,6 +39,7 @@ class Renderer
     int WindowW, WindowH;
     int LastWindowW, LastWindowH; // checking for window resize
     bool bEnableVsync = false;
+    bool bIsHiDPI = false; // assume not hiDPI, check on window resize
 
     // other
     double CurrentTime = 0.0;

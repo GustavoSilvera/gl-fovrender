@@ -34,16 +34,28 @@ bool Renderer::CreateWindow()
     return true;
 }
 
-void Renderer::FramebufferResizeCallback()
+void Renderer::WindowCallbacks()
 {
+    // callback on framebuffer/window size
     glfwGetFramebufferSize(window, &WindowW, &WindowH);
-
     if (WindowW != LastWindowW || WindowH != LastWindowH)
     {
-
         std::cout << "Detected FB size change from "
                   << "(" << LastWindowW << " x " << LastWindowH << ") to (" << WindowW << " x " << WindowH << ")"
                   << std::endl;
+#ifdef __APPLE__
+        /// HACK: special case for MacOS hiDPI monitors which exactly 2x or 1/2x the dpi between hi and lo dpi displays
+        int ExpectedWindowW, ExpectedWindowH;
+        glfwGetWindowSize(window, &ExpectedWindowW, &ExpectedWindowH);
+        if (ExpectedWindowH == WindowH / 2 && ExpectedWindowW == WindowW / 2)
+        {
+            std::cout << "Detected hiDPI display" << std::endl;
+            bIsHiDPI = true;
+        }
+        else
+            bIsHiDPI = false;
+
+#endif
         LastWindowW = WindowW;
         LastWindowH = WindowH;
 
@@ -57,6 +69,14 @@ void Renderer::FramebufferResizeCallback()
             // generate new FB texture for postprocessing
             GenerateFBO();
         }
+    }
+
+    // callback on Mouse coordinates
+    glfwGetCursorPos(window, &MouseX, &MouseY);
+    if (bIsHiDPI)
+    {
+        MouseX *= 2;
+        MouseY *= 2;
     }
 }
 
@@ -162,7 +182,6 @@ void Renderer::TalkWithProgram(int ProgramIdx)
     glUniform2fv(glGetUniformLocation(ProgramIdx, "iResolution"), 1, ScreenSize);
 
     // send iMouse
-    glfwGetCursorPos(window, &MouseX, &MouseY);
     float mouse_pos_f[] = {static_cast<float>(MouseX), static_cast<float>(MouseY)};
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
@@ -312,7 +331,7 @@ bool Renderer::Run()
     assert(window != nullptr);
     while (!glfwWindowShouldClose(window))
     {
-        FramebufferResizeCallback(); // check for frame buffer size change
+        WindowCallbacks(); // check for frame buffer size change
 
         RenderPass(); // perform main draw pass
 
