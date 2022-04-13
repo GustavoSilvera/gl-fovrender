@@ -37,7 +37,7 @@ bool Renderer::CreateWindow()
 void Renderer::DisplayFps()
 {
     assert(window != nullptr);
-    const double DeltaT = glfwGetTime() - LastTime1Sec;
+    const double DeltaT = glfwGetTime() - LastTimeFps;
     NumFrames++;
     if (DeltaT > 1.f) // more than a second ago
     {
@@ -46,7 +46,7 @@ void Renderer::DisplayFps()
         ss << "[" << Fps << " FPS]";
         glfwSetWindowTitle(window, ss.str().c_str());
         NumFrames = 0;
-        LastTime1Sec = glfwGetTime();
+        LastTimeFps = glfwGetTime();
     }
 }
 
@@ -122,11 +122,12 @@ void Renderer::TalkWithProgram(int ProgramIdx)
     glUniform2fv(glGetUniformLocation(ProgramIdx, "iMouse"), 1, mouse_pos_f);
 
     // communicate foveated render params
-    glUniform1i(glGetUniformLocation(ProgramIdx, "stride"), 32);
+    glUniform1i(glGetUniformLocation(ProgramIdx, "stride"), Params.FRParams.stride);
     const float diag = 0.5f * (WindowW + WindowH);
-    const float thresh1 = 0.1f * diag;
-    const float thresh2 = 0.25f * diag;
-    const float thresh3 = 0.4f * diag;
+    assert(Params.FRParams.thresh1 < Params.FRParams.thresh2 && Params.FRParams.thresh2 < Params.FRParams.thresh3);
+    const float thresh1 = Params.FRParams.thresh1 * diag;
+    const float thresh2 = Params.FRParams.thresh2 * diag;
+    const float thresh3 = Params.FRParams.thresh3 * diag;
     glUniform1f(glGetUniformLocation(ProgramIdx, "thresh1"), thresh1);
     glUniform1f(glGetUniformLocation(ProgramIdx, "thresh2"), thresh2);
     glUniform1f(glGetUniformLocation(ProgramIdx, "thresh3"), thresh3);
@@ -278,32 +279,23 @@ void Renderer::PostprocessingPass()
 bool Renderer::Run()
 {
     assert(window != nullptr);
-
-    // get mouse pos
-    glfwGetCursorPos(window, &MouseX, &MouseY);
-    LastTime = glfwGetTime();
-    NumFrames = 0;
     while (!glfwWindowShouldClose(window))
     {
+        RenderPass(); // perform main draw pass
 
-        RenderPass();
+        PostprocessingPass(); // perform postprocessing effects
 
-        PostprocessingPass();
-
-        // Poll for and process events
-        glfwPollEvents();
+        glfwPollEvents(); // Poll for and process events
 
         CheckInputs(); // check for miscellaneous input actions
 
-        TickClock();
+        TickClock(); // tick forward (unless paused) the internal clock
 
-        /// TODO: use arrow keys to switch between shaders!!
+        /// TODO: use arrow keys to switch between shaders?
 
-        // display fps in title
-        DisplayFps();
+        DisplayFps(); // display fps in title
 
-        // Swap front and back buffers
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(window); // Swap front and back buffers
     }
 
     return true;

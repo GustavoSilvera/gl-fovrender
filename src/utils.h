@@ -45,6 +45,8 @@ struct MainShaderParams
 struct FRShaderParams
 {
     std::string drop_shader, reconstruction_shader;
+    int stride;
+    float thresh1, thresh2, thresh3;
 };
 
 struct WindowParamsStruct
@@ -63,6 +65,7 @@ struct ParamsStruct
     std::string FilePath;
     void ParseFile()
     {
+        /// TODO: REFACTOR THIS
         // create input stream to get file data
         std::ifstream Input(FilePath);
         if (!Input.is_open())
@@ -100,6 +103,14 @@ struct ParamsStruct
                 MainParams.fragment_shader_name = ParamValue;
             else if (!ParamName.compare("fr_fragment_shader"))
                 FRParams.drop_shader = ParamValue;
+            else if (!ParamName.compare("stride"))
+                FRParams.stride = std::stoi(ParamValue);
+            else if (!ParamName.compare("thresh1"))
+                FRParams.thresh1 = std::stof(ParamValue);
+            else if (!ParamName.compare("thresh2"))
+                FRParams.thresh2 = std::stof(ParamValue);
+            else if (!ParamName.compare("thresh3"))
+                FRParams.thresh3 = std::stof(ParamValue);
             else if (!ParamName.compare("fr_reconstruction_shader"))
                 FRParams.reconstruction_shader = ParamValue;
             else if (!ParamName.compare("init_width"))

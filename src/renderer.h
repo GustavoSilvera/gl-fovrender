@@ -36,10 +36,10 @@ class Renderer
     bool bEnableVsync = false;
 
     // other
-    double CurrentTime;
-    double LastTime;
-    double LastTime1Sec;
-    int NumFrames;
+    double CurrentTime = 0.0;
+    double LastTime = 0.0;
+    double LastTimeFps = 0.0; // last time but only refreshed for the fps counter
+    int NumFrames = 0;
     bool bTickClock = true; // start ticking
 
     // input params
