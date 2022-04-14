@@ -33,13 +33,17 @@ float sqr(const float a)
 void main()
 {
     vec2 coord = gl_FragCoord.xy - 0.5; // top left corner of pixel
-    float d2 = norm2(coord - vec2(Mouse.x, -Mouse.y + iResolution.y));
 
     // which quad am on?
     float xmod = mod(coord.x, stride);
     float ymod = mod(coord.y, stride);
 
-    // assume equal if nothing else
+    // compute (boxy) distance to foveal region
+    vec2 boxy_coord = floor(coord / stride) * stride;
+    vec2 center = floor(vec2(Mouse.x, -Mouse.y + iResolution.y) / stride) * stride;
+    float d2 = norm2(boxy_coord - center);
+
+    // assume equal weights, though these change depending on interpolation
     float weight_x = 0.5;
     float weight_y = 0.5;
 
@@ -105,7 +109,7 @@ void main()
                 }
                 else
                 {
-                    // case 3: diagonal bilinear interpolation
+                    // case 3: diagonal trilinear interpolation
                     weight_y = (ymod - quad) / quad;                        // positive is up
                     float weight_xy1 = (1.0 - weight_y) * weight_x;         // positive is bottom right
                     float weight_xy2 = weight_y * (1.0 - weight_x);         // positive is top left

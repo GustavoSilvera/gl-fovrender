@@ -32,11 +32,15 @@ float sqr(const float a)
 void main()
 {
     vec2 coord = gl_FragCoord.xy - 0.5; // top left corner of pixel
-    float d2 = norm2(coord - vec2(Mouse.x, -Mouse.y + iResolution.y));
 
     // which quad am on?
     float xmod = mod(coord.x, stride);
     float ymod = mod(coord.y, stride);
+
+    // compute (boxy) distance to foveal region
+    vec2 boxy_coord = floor(coord / stride) * stride;
+    vec2 center = floor(vec2(Mouse.x, -Mouse.y + iResolution.y) / stride) * stride;
+    float d2 = norm2(boxy_coord - center);
 
     if (xmod < quad && ymod < quad) // top left
     {
