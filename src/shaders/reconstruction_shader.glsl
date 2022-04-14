@@ -48,7 +48,7 @@ void main()
         // no op (always rendered in full in frag shader)
         discard;
     }
-    else if (xmod < quad && ymod >= quad) // top right
+    else if (xmod < quad && ymod >= quad && d2 < sqr(thresh3)) // top right
     {
         weight_x = xmod / quad;          // positive is right
         weight_y = (ymod - quad) / quad; // positive is up
@@ -64,7 +64,7 @@ void main()
         else
             discard;
     }
-    else if (xmod >= quad && ymod < quad) // bottom left
+    else if (xmod >= quad && ymod < quad && d2 < sqr(thresh3)) // bottom left
     {
         weight_x = (xmod - quad) / quad; // positive is right
         weight_y = ymod / quad;          // positive is up
@@ -85,9 +85,43 @@ void main()
         if (d2 > sqr(thresh3))
         {
             fragColor = vec4(0.0);
-            // fragColor += texelFetch(tex, ivec2(coord.x - (x2 - quad), coord.y), 0);
-            // fragColor += texelFetch(tex, ivec2(coord.x + (quad - x2), coord.y), 0);
-            // fragColor /= 2;
+            // need to case for horizontal, vertical, or diagonal bilinear interp.
+            if (xmod < quad)
+            {
+                // case 1: vertical bilinear interpolation
+                weight_y = (ymod - quad) / quad; // positive is up
+
+                fragColor += weight_y * texelFetch(tex, ivec2(coord.x, coord.y + stride - ymod), 0);           // top
+                fragColor += (1.0 - weight_y) * texelFetch(tex, ivec2(coord.x, coord.y - ymod + quad - 1), 0); // bottom
+            }
+            else
+            {
+                weight_x = (xmod - quad) / quad; // positive is right
+                if (ymod < quad)
+                {
+                    // case 2: horizontal bilinear interpolation
+                    fragColor += weight_x * texelFetch(tex, ivec2(coord.x + stride - xmod, coord.y), 0);           // R
+                    fragColor += (1.0 - weight_x) * texelFetch(tex, ivec2(coord.x - xmod + quad - 1, coord.y), 0); // L
+                }
+                else
+                {
+                    // case 3: diagonal bilinear interpolation
+                    weight_y = (ymod - quad) / quad;                        // positive is up
+                    float weight_xy1 = (1.0 - weight_y) * weight_x;         // positive is bottom right
+                    float weight_xy2 = weight_y * (1.0 - weight_x);         // positive is top left
+                    float weight_xy3 = weight_y * weight_x;                 // positive is top right
+                    float weight_xy4 = (1.0 - weight_y) * (1.0 - weight_x); // positive is bottom left
+
+                    fragColor += // bottom right
+                        weight_xy1 * texelFetch(tex, ivec2(coord.x + stride - xmod, coord.y - ymod + quad - 1), 0);
+                    fragColor += // top left
+                        weight_xy2 * texelFetch(tex, ivec2(coord.x - xmod + quad - 1, coord.y + stride - ymod), 0);
+                    fragColor += // top right
+                        weight_xy3 * texelFetch(tex, ivec2(coord.x + stride - xmod, coord.y + stride - ymod), 0);
+                    fragColor += // bottom left
+                        weight_xy4 * texelFetch(tex, ivec2(coord.x - xmod + quad - 1, coord.y - ymod + quad - 1), 0);
+                }
+            }
         }
         else
             discard;
