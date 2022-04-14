@@ -54,32 +54,45 @@ void main()
     }
     else if (xmod < quad && ymod >= quad && d2 < sqr(thresh3)) // top right
     {
-        weight_x = xmod / quad;          // positive is right
-        weight_y = (ymod - quad) / quad; // positive is up
         if (d2 > sqr(thresh1))
         {
+            weight_x = xmod / quad;          // positive is right
+            weight_y = (ymod - quad) / quad; // positive is up
             fragColor = vec4(0.0);
-            fragColor += weight_x * texelFetch(tex, ivec2(coord.x + quad - xmod, coord.y), 0);             // right
-            fragColor += (1.0 - weight_x) * texelFetch(tex, ivec2(coord.x - xmod - 1, coord.y), 0);        // left
+            // always accumulate vertical pixels for interp
             fragColor += weight_y * texelFetch(tex, ivec2(coord.x, coord.y + stride - ymod), 0);           // top
             fragColor += (1.0 - weight_y) * texelFetch(tex, ivec2(coord.x, coord.y - ymod + quad - 1), 0); // bottom
-            fragColor /= 2;
+            // usually accumulate horizontal pixels for interp, but not if left is unfilled
+            vec4 left_colour = texelFetch(tex, ivec2(coord.x - xmod - 1, coord.y), 0);
+            if (left_colour.rgb != vec3(0)) // needs to be coloured somewhat
+            {
+                // as long as left is good, use it for more data
+                fragColor += weight_x * texelFetch(tex, ivec2(coord.x + quad - xmod, coord.y), 0); // right
+                fragColor += (1.0 - weight_x) * left_colour;                                       // left
+                fragColor /= 2; // average between x data and y data
+            }
         }
         else
             discard;
     }
     else if (xmod >= quad && ymod < quad && d2 < sqr(thresh3)) // bottom left
     {
-        weight_x = (xmod - quad) / quad; // positive is right
-        weight_y = ymod / quad;          // positive is up
         if (d2 > sqr(thresh2))
         {
+            weight_x = (xmod - quad) / quad; // positive is right
+            weight_y = ymod / quad;          // positive is up
             fragColor = vec4(0.0);
-            fragColor += weight_x * texelFetch(tex, ivec2(coord.x + stride - xmod, coord.y), 0);           // right
+            // always accumulate left/right data for interp
             fragColor += (1.0 - weight_x) * texelFetch(tex, ivec2(coord.x - xmod + quad - 1, coord.y), 0); // left
-            fragColor += weight_y * texelFetch(tex, ivec2(coord.x, coord.y + quad - ymod), 0);             // top
-            fragColor += (1.0 - weight_y) * texelFetch(tex, ivec2(coord.x, coord.y - ymod - 1), 0);        // bottom
-            fragColor /= 2;
+            fragColor += weight_x * texelFetch(tex, ivec2(coord.x + stride - xmod, coord.y), 0);           // right
+            // usually accumulate vertical pixels for interp, but not if bottom is unfilled
+            vec4 bottom_colour = texelFetch(tex, ivec2(coord.x, coord.y - ymod - 1), 0);
+            if (bottom_colour.rgb != vec3(0)) // needs to be coloured somewhat
+            {
+                fragColor += weight_y * texelFetch(tex, ivec2(coord.x, coord.y + quad - ymod), 0); // top
+                fragColor += (1.0 - weight_y) * bottom_colour;                                     // bottom
+                fragColor /= 2; // average between x data and y data
+            }
         }
         else
             discard;
