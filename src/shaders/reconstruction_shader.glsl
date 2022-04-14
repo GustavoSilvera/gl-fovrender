@@ -99,7 +99,7 @@ void main()
     }
     else // bottom right
     {
-        if (d2 > sqr(thresh3))
+        if (d2 >= sqr(thresh3))
         {
             fragColor = vec4(0.0);
             // need to case for horizontal, vertical, or diagonal bilinear interp.
