@@ -178,6 +178,22 @@ void Renderer::CheckInputs()
     {
         bNextDown = false;
     }
+
+    // toggle postprocessing (reconstruction) shader
+    const bool bPressPPToggle =
+        (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS);
+    const bool bReleasePPToggle =
+        (glfwGetKey(window, GLFW_KEY_W) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_RELEASE);
+    if (bPressPPToggle && !bPPToggleDown)
+    {
+        std::cout << "Toggling postprocessing shader..." << std::endl;
+        Params.bEnablePostProcessing = !Params.bEnablePostProcessing;
+        bPPToggleDown = true;
+    }
+    else if (bReleasePPToggle)
+    {
+        bPPToggleDown = false;
+    }
 }
 
 void Renderer::TickClock()

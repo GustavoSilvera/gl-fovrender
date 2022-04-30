@@ -51,10 +51,11 @@ class Renderer
     // input params
     double MouseX, MouseY;
     // button press rising-edge actions
-    bool bPauseDown = false;  // only pause on rising edge
-    bool bReloadDown = false; // only reload on rising edge
-    bool bPrevDown = false;   // only previous shader on rising edge
-    bool bNextDown = false;   // only next shader on rising edge
+    bool bPauseDown = false;
+    bool bReloadDown = false;
+    bool bPrevDown = false;
+    bool bNextDown = false;
+    bool bPPToggleDown = false;
 
     // window
     GLFWwindow *window = nullptr;
