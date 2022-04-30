@@ -51,6 +51,8 @@ struct MainProgram : Program
   public:
     bool loadShaders(const ParamsStruct &P);
     bool Reload(const ParamsStruct &P);
+    bool NextShader(const ParamsStruct &P);
+    bool PrevShader(const ParamsStruct &P);
 };
 
 } // namespace ShaderUtils

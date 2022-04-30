@@ -151,9 +151,20 @@ bool MainProgram::Reload(const ParamsStruct &P)
             ShaderUtils::Shader(P.bEnableFovRender ? P.FRParams.drop_shader : P.MainParams.non_fr_fragment_shader_path,
                                 "fragment", GL_FRAGMENT_SHADER),
         };
-        ShaderIdx = (ShaderIdx + 1) % OtherShaderPaths.size();
     }
     // call parent reload
     return Program::Reload();
+}
+
+bool MainProgram::NextShader(const ParamsStruct &P)
+{
+    ShaderIdx = (ShaderIdx + 1) % OtherShaderPaths.size();
+    return Reload(P);
+}
+
+bool MainProgram::PrevShader(const ParamsStruct &P)
+{
+    ShaderIdx = (ShaderIdx - 1) % OtherShaderPaths.size();
+    return Reload(P);
 }
 }; // namespace ShaderUtils

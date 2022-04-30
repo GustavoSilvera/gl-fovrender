@@ -142,6 +142,42 @@ void Renderer::CheckInputs()
     {
         bReloadDown = false;
     }
+
+    // previous shader
+    const bool bPressPrev =
+        (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS);
+    const bool bReleasePrev =
+        (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_A) == GLFW_RELEASE);
+    if (bPressPrev && !bPrevDown)
+    {
+        std::cout << "Previous shader..." << std::endl;
+        bPrevDown = true;
+        Params.ParseFile();      // reload global params
+        Main.PrevShader(Params); // previous main param & shaders
+        PostProc.Reload();       // reload postprocessing shaders
+    }
+    else if (bReleasePrev)
+    {
+        bPrevDown = false;
+    }
+
+    // next shader
+    const bool bPressNext =
+        (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS);
+    const bool bReleaseNext =
+        (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_D) == GLFW_RELEASE);
+    if (bPressNext && !bNextDown)
+    {
+        std::cout << "Right shader..." << std::endl;
+        bNextDown = true;
+        Params.ParseFile();      // reload global params
+        Main.NextShader(Params); // right main param & shaders
+        PostProc.Reload();       // reload postprocessing shaders
+    }
+    else if (bReleaseNext)
+    {
+        bNextDown = false;
+    }
 }
 
 void Renderer::TickClock()
@@ -342,8 +378,6 @@ bool Renderer::Run()
         CheckInputs(); // check for miscellaneous input actions
 
         TickClock(); // tick forward (unless paused) the internal clock
-
-        /// TODO: use arrow keys to switch between shaders?
 
         DisplayFps(); // display fps in title
 
