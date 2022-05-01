@@ -51,11 +51,13 @@ class Renderer
     // input params
     double MouseX, MouseY;
     // button press rising-edge actions
-    bool bPauseDown = false;
-    bool bReloadDown = false;
-    bool bPrevDown = false;
-    bool bNextDown = false;
-    bool bPPToggleDown = false;
+    bool bPausePressed = false;
+    bool bReloadPressed = false;
+    bool bPrevPressed = false;
+    bool bNextPressed = false;
+    bool bUpPressed = false;
+    bool bDownPressed = false;
+    bool bPPTogglePressed = false;
 
     // window
     GLFWwindow *window = nullptr;

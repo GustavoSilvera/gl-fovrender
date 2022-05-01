@@ -130,17 +130,17 @@ void Renderer::CheckInputs()
     }
 
     // check for reloading shaders
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !bReloadDown)
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !bReloadPressed)
     {
         std::cout << "Reloading..." << std::endl;
-        bReloadDown = true;
+        bReloadPressed = true;
         Params.ParseFile();  // reload global params
         Main.Reload(Params); // reload main param & shaders
         PostProc.Reload();   // reload postprocessing shaders
     }
     else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE)
     {
-        bReloadDown = false;
+        bReloadPressed = false;
     }
 
     // previous shader
@@ -148,17 +148,17 @@ void Renderer::CheckInputs()
         (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS);
     const bool bReleasePrev =
         (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_A) == GLFW_RELEASE);
-    if (bPressPrev && !bPrevDown)
+    if (bPressPrev && !bPrevPressed)
     {
         std::cout << "Previous shader..." << std::endl;
-        bPrevDown = true;
+        bPrevPressed = true;
         Params.ParseFile();      // reload global params
         Main.PrevShader(Params); // previous main param & shaders
         PostProc.Reload();       // reload postprocessing shaders
     }
     else if (bReleasePrev)
     {
-        bPrevDown = false;
+        bPrevPressed = false;
     }
 
     // next shader
@@ -166,33 +166,69 @@ void Renderer::CheckInputs()
         (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS);
     const bool bReleaseNext =
         (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_D) == GLFW_RELEASE);
-    if (bPressNext && !bNextDown)
+    if (bPressNext && !bNextPressed)
     {
         std::cout << "Right shader..." << std::endl;
-        bNextDown = true;
+        bNextPressed = true;
         Params.ParseFile();      // reload global params
         Main.NextShader(Params); // right main param & shaders
         PostProc.Reload();       // reload postprocessing shaders
     }
     else if (bReleaseNext)
     {
-        bNextDown = false;
+        bNextPressed = false;
+    }
+
+    // double the stride size
+    const bool bPressUp =
+        (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS);
+    const bool bReleaseUp =
+        (glfwGetKey(window, GLFW_KEY_UP) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_W) == GLFW_RELEASE);
+    if (bPressUp && !bUpPressed)
+    {
+        int old = Params.FRParams.stride;
+        int current = std::min(Params.FRParams.stride * 2, 256);
+        Params.FRParams.stride = current;
+        std::cout << "Increasing block size from " << old << " to " << current << std::endl;
+        bUpPressed = true;
+    }
+    else if (bReleaseUp)
+    {
+        bUpPressed = false;
+    }
+
+    // half the stride size
+    const bool bPressDown =
+        (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS);
+    const bool bReleaseDown =
+        (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_S) == GLFW_RELEASE);
+    if (bPressDown && !bDownPressed)
+    {
+        int old = Params.FRParams.stride;
+        int current = std::max(Params.FRParams.stride / 2, 2);
+        Params.FRParams.stride = current;
+        std::cout << "Decreasing block size from " << old << " to " << current << std::endl;
+        bDownPressed = true;
+    }
+    else if (bReleaseDown)
+    {
+        bDownPressed = false;
     }
 
     // toggle postprocessing (reconstruction) shader
     const bool bPressPPToggle =
-        (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS);
+        (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS);
     const bool bReleasePPToggle =
-        (glfwGetKey(window, GLFW_KEY_W) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_RELEASE);
-    if (bPressPPToggle && !bPPToggleDown)
+        (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_RELEASE);
+    if (bPressPPToggle && !bPPTogglePressed)
     {
         std::cout << "Toggling postprocessing shader..." << std::endl;
         Params.bEnablePostProcessing = !Params.bEnablePostProcessing;
-        bPPToggleDown = true;
+        bPPTogglePressed = true;
     }
     else if (bReleasePPToggle)
     {
-        bPPToggleDown = false;
+        bPPTogglePressed = false;
     }
 }
 
@@ -200,18 +236,18 @@ void Renderer::TickClock()
 {
     assert(window != nullptr);
     // check for toggling time shaders
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !bPauseDown)
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !bPausePressed)
     {
         bTickClock = !bTickClock;
         if (!bTickClock)
             std::cout << "Freezing clock @ " << glfwGetTime() << std::endl;
         else
             std::cout << "Resuming clock @ " << glfwGetTime() << std::endl;
-        bPauseDown = true;
+        bPausePressed = true;
     }
     else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
     {
-        bPauseDown = false;
+        bPausePressed = false;
     }
 
     if (bTickClock)
