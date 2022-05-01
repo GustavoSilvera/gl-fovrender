@@ -39,7 +39,7 @@
 - Image source: [Oculus devpost](https://developer.oculus.com/blog/tech-note-mask-based-foveated-rendering-with-unreal-engine-4-/)
 
 
-(Got the first two regions filled, the last region is not completed yet)
+(if you look closely [especially when the animation is paused] you can see a ring around the mouse cursor where the various regions are defined)
 
 ![HappyJumpingDemo](docs/HappyJumpingFill.gif)
 - Shader source: [Happy Jumping - iq](https://www.shadertoy.com/view/3lsSzf)
