@@ -10,9 +10,7 @@
 # How does it work?
 - The idea behind [foveated rendering](https://en.wikipedia.org/wiki/Foveated_rendering) is quite simple: **prioritize quality in the foveal region where a user is looking, gradually decrease quality as the scene gets further into the periphery**. 
     - The ideal situation for foveated rendering is in VR applications where an eye-tracker can be built-in to a VR headset (see [HTC Vive Pro Eye](https://www.vive.com/us/product/vive-pro-eye/overview/)) and there is only one user looking at the content. 
-    - Since this is an exercise in shader development and not necessarily VR, I simplified the process in these ways:
-        1. Use mouse-based foveated rendering: ie. instead of using gaze, use the mouse cursor position as the central foveated region.
-        2. Connect a camera-based eye tracking model to the program to use as an approximation of eye tracking that should be close. Currently thinking of using Antoine Lame's [GazeTracking repo](https://github.com/antoinelame/GazeTracking).
+    - Since this is an exercise in shader development and not necessarily VR, I simplified the process by using the mouse cursor as the primary signal for the central foveated region. It would be nice to use a Tobii device or fast webcam based solution that could run in accurately and fast. 
 
 # Implementation details?
 - First, the regions defining the various quality regions is determined (as a function of distance from the central region). I'm using 4 levels:
@@ -48,9 +46,12 @@
 # What works?
 
 - Currently, the foveated-rendering pixel dropping shader works in that it can call other fragment shaders (see [`shaders.md`](src/shaders/shaders.md)) while dropping pixels according to their region.
-- Also, the foveated-rendering reconstruction (infilling) shader works for the first two levels. It is currently using trilinear interpolation for the first two foveal regions (75% and 50% quality) and this works reasonably well!
+- Also, the foveated-rendering reconstruction (infilling) shader works for all three. It is currently using trilinear interpolation for the first two foveal regions (75% and 50% quality) and bilinear interpolation for the last (25%) layer.
 - You can pause the shader while its running by pressing `SPACE`.
-- You can reload the shaders and switch to the next shader in `shaders/main/*.glsl` by pressing `R`.
+- You can reload the shaders by pressing `R`.
+- You can switch to the next/prev shader by pressing `A`/`LEFT` and `D`/`RIGHT` respectively.
+- You can increase/decrease the drop block size (by factor of 2) by pressing `W`/`UP` and `D`/`DOWN` respectively.
+- You can toggle the postprocessing shader during runtime by pressing `TAB`/`ENTER`.
 - You can exit the application by pressing `ESC`.
 - All params work as expected in [`params/params.ini`](params/params.ini)
     - Currently can tune things like the pixel group size, thresholds for the foveal region radii, whether or not to use the foveated rendering & postprocessing shaders, and paths for the shaders.
@@ -58,12 +59,11 @@
 
 # What doesn't work?
 
-- I haven't finished the bilinear interpolation step of the reconstruction shader for the last (25% quality) foveal region.
-- I haven't plugged in an eye-tracking functionality yet. Once I have one reliable and fast enough, I plan on using the eye gaze coordinates as indicators for the central foveal region instead of the mouse cursor.
+- I haven't plugged in any eye-tracking functionality yet. Once I have one reliable and fast enough, I would like to use the eye gaze on screen coordinates as indicators for the central foveal region instead of the mouse cursor. Currently looking into this [webcam-based eye tracking project](https://github.com/antoinelame/GazeTracking) but it is currently too unreliable and slow for release.
 
 
 # How to build
-This has been tested on my M1 Max 14" laptop running MacOS 12.3. Ideally it should be fairly cross-platform but I haven't tested on Linux/Windows. 
+This has been tested on my M1 Max laptop running MacOS 12.3. Ideally it should be fairly cross-platform but I haven't tested on Linux/Windows. 
 
 ## Prerequisites
 Ensure you have the following dependencies:
