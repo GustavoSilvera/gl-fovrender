@@ -334,6 +334,9 @@ bool Renderer::Init()
     bEnableVsync = Params.bEnableVsync;
     glfwSwapInterval(bEnableVsync);
 
+    if (init_recv_conn(receiver_addr, receiver_fd) < 0)
+        return -1;
+
     return true;
 }
 
@@ -398,6 +401,10 @@ bool Renderer::Run()
         DisplayFps(); // display fps in title
 
         glfwSwapBuffers(window); // Swap front and back buffers
+
+        std::vector<char> data;
+        int i = listen_once(data);
+        std::cout << i << std::endl;
     }
 
     return true;
@@ -411,5 +418,6 @@ bool Renderer::Exit()
     glDeleteTextures(1, &Tex);
     glDeleteVertexArrays(1, &VAO);
     glfwTerminate();
+    close_sockets(receiver_fd);
     return true;
 }

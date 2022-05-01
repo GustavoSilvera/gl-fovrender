@@ -11,6 +11,7 @@
 #endif
 
 #include "shader_utils.h"
+#include "sockets.h"
 #include "utils.h"
 
 class Renderer
