@@ -45,7 +45,7 @@
 
 # What works?
 
-- Currently, the foveated-rendering pixel dropping shader works in that it can call other fragment shaders (see [`shaders.md`](src/shaders/shaders.md)) while dropping pixels according to their region.
+- Currently, the foveated-rendering pixel dropping shader works in that it can call other fragment shaders (see [`shaders/README.md`](src/shaders/README.md)) while dropping pixels according to their region.
 - Also, the foveated-rendering reconstruction (infilling) shader works for all three. It is currently using trilinear interpolation for the first two foveal regions (75% and 50% quality) and bilinear interpolation for the last (25%) layer.
 - You can pause the shader while its running by pressing `SPACE`.
 - You can reload the shaders by pressing `R`.
@@ -108,5 +108,5 @@ make -j10
 ## Acknowledgements
 - Idea & implementation details were sourced from this [Oculus developer post](https://developer.oculus.com/blog/tech-note-mask-based-foveated-rendering-with-unreal-engine-4-/).
 - Heavy inspiration and initial help was taken from this blog post on [opengl and cpp on m1 mac](https://carette.xyz/posts/opengl_and_cpp_on_m1_mac/) by Antonin Carette (original repository [here](https://github.com/k0pernicus/opengl-explorer))
-- Various shadertoy shaders were used in development of this project (see [src/shaders/shaders.md](src/shaders/shaders.md)).
+- Various shadertoy shaders were used in development of this project (see [src/shaders/README.md](src/shaders/README.md)).
 - Eye tracking functionality is built on Antoine Lame's [GazeTracking repo](https://github.com/antoinelame/GazeTracking)
