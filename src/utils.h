@@ -56,7 +56,7 @@ struct WindowParamsStruct
 
 struct ParamsStruct
 {
-    bool bEnableVsync;
+    bool bEnableVsync, bEnableDebugMode;
     bool bEnableFovRender, bEnablePostProcessing;
 
     MainShaderParams MainParams;
@@ -93,6 +93,8 @@ struct ParamsStruct
                 bEnableFovRender = stob(ParamValue);
             else if (!ParamName.compare("enable_postprocessing"))
                 bEnablePostProcessing = stob(ParamValue);
+            else if (!ParamName.compare("debug_mode"))
+                bEnableDebugMode = stob(ParamValue);
             else if (!ParamName.compare("vertex_shader"))
                 MainParams.vertex_shader_path = ParamValue;
             else if (!ParamName.compare("fragment_shaders"))

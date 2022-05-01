@@ -46,7 +46,9 @@ class Renderer
     double LastTime = 0.0;
     double LastTimeFps = 0.0; // last time but only refreshed for the fps counter
     int NumFrames = 0;
-    bool bTickClock = true; // start ticking
+    double TimeFragmentShaderSec = 0.f;    // cumulative time that the fragment shader took
+    double TimeReconstructShaderSec = 0.f; // cumulative time that the reconstruction shader took
+    bool bTickClock = true;                // start ticking
 
     // input params
     double MouseX, MouseY;

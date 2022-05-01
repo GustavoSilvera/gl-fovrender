@@ -113,10 +113,17 @@ void Renderer::DisplayFps()
     if (DeltaT > 1.f) // more than a second ago
     {
         const double Fps = double(NumFrames) / DeltaT;
+        const double FragTime = TimeFragmentShaderSec / NumFrames;
+        const double RecTime = TimeReconstructShaderSec / NumFrames;
         std::stringstream ss;
-        ss << "[" << Fps << " FPS]";
+        if (Params.bEnableDebugMode)
+            ss << "[FPS: " << Fps << " FRAG: " << FragTime << " REC: " << RecTime << "]";
+        else
+            ss << "[FPS: " << Fps << "]";
         glfwSetWindowTitle(window, ss.str().c_str());
         NumFrames = 0;
+        TimeFragmentShaderSec = 0.f;
+        TimeReconstructShaderSec = 0.f;
         LastTimeFps = glfwGetTime();
     }
 }
@@ -375,6 +382,7 @@ bool Renderer::Init()
 
 void Renderer::RenderPass()
 {
+    const double TimeStart = glfwGetTime();
     int MainProgram = Main.GetProgram();
 
     // first, render to default framebuffer
@@ -391,12 +399,22 @@ void Renderer::RenderPass()
 
     // peform the drawing
     glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
+
+    if (Params.bEnableDebugMode)
+    {
+        // measure total runtime of this pass
+        glFinish(); // wait until GPU pipelining is done for this frame
+        // this is costly as it effectively incurs a flush and limits parallelism
+
+        TimeFragmentShaderSec += glfwGetTime() - TimeStart;
+    }
 }
 
 void Renderer::PostprocessingPass()
 {
     if (Params.bEnablePostProcessing)
     {
+        const double TimeStart = glfwGetTime();
         int ReconstructionProgram = PostProc.GetProgram();
         // copy framebuffer (current rendered buffer) to FBO (& its texture)
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
@@ -411,6 +429,12 @@ void Renderer::PostprocessingPass()
         glBindVertexArray(VAO);
         // peform the drawing
         glDrawArrays(GL_TRIANGLES, 0, 6); // 2 (3 vertex) triangles for rect
+        if (Params.bEnableDebugMode)
+        {
+            glFinish();
+            // accumulate the time to run this pass
+            TimeReconstructShaderSec += glfwGetTime() - TimeStart;
+        }
     }
 }
 
