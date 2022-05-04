@@ -24,8 +24,11 @@
         - Image source: [Oculus devpost](https://developer.oculus.com/blog/tech-note-mask-based-foveated-rendering-with-unreal-engine-4-/)
     - Note that dropping individual pixels is usually not worthwhile as the GPU scheduling often performs work in batches anyways, but the size of these batches is tunable in [params/params.ini](params/params.ini)
 
-![HappyJumpingDemo](docs/HappyJumpingDrop.gif)
-- Shader source: [Happy Jumping - iq](https://www.shadertoy.com/view/3lsSzf)
+![DropDemo1](docs/drop_demo_1.gif)
+- Shader source: [Fractal Pyramid -- bradjamesgrant](https://www.shadertoy.com/view/tsXBzS)
+
+![DropDemo2](docs/drop_demo_2.gif)
+- Shader source: [Geomechanical -- Bers](https://www.shadertoy.com/view/MdcXzn)
 
 ## Pixel infilling/reconstruction
 - After dropping pixels in the above step, we know the pattern and need to reconstruct the gaps in the image. Luckily, this can be done as a (relatively inexpensive) **post-processing** step that uses the previous shader's framebuffer as a texture to perform its pixel fetching. 
@@ -39,8 +42,8 @@
 
 (if you look closely [especially when the animation is paused] you can see a ring around the mouse cursor where the various regions are defined)
 
-![HappyJumpingDemo](docs/HappyJumpingFill.gif)
-- Shader source: [Happy Jumping - iq](https://www.shadertoy.com/view/3lsSzf)
+![FillDemo1](docs/fill_demo_1.gif)
+- Shader source: [Fractal Pyramid -- bradjamesgrant](https://www.shadertoy.com/view/tsXBzS)
 
 
 # What works?
