@@ -5,6 +5,7 @@
 # What is this?
 
 - This is a playground repository for demoing an implementation of **foveated rendering** on standard OpenGL fragment shaders. The algorithm for foveated rendering closely follows the one described in Oculus' [Tech Note: Mask-based Foveated Rendering with Unreal Engine 4](https://developer.oculus.com/blog/tech-note-mask-based-foveated-rendering-with-unreal-engine-4-/).
+- To see the corresponding final report, check out [`paper/final_report.pdf`](paper/final_report.pdf)
 - This repo contains custom implementations for the pixel-dropping and reconstruction shaders in OpenGL 3.3 and I aim to eveluate the performance benefits compared to full-quality rendering across various shaders and with various tuning parameters. 
 
 # How does it work?
